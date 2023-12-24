@@ -117,17 +117,25 @@ export default function TiemrMenu() {
         });
     })
 
-    const applySettings = () => {
+    const apply_settings = () => {
         is_apply = true;
-        window.removeEventListener('beforeunload', () => {})
+        window.removeEventListener('beforeunload', () => { })
+    }
+
+    function connect_to_ble_stopplate() {
+        BLEStopplateService.getInstance().scan_and_connect_stopplate();
+    }
+
+    function disconnect() {
+        BLEStopplateService.getInstance().disconnect();
     }
 
     return (
         <>
             <Stack gap={2} divider={<Divider />}>
                 <ButtonGroup fullWidth>
-                    <Button variant="contained">Connect</Button>
-                    <Button>Disconnect</Button>
+                    <Button variant="contained" onClick={connect_to_ble_stopplate}>Connect</Button>
+                    <Button onClick={disconnect}>Disconnect</Button>
                 </ButtonGroup>
                 <Paper elevation={10} sx={{ padding: 1 }}>
                     <Stack gap={1}>
@@ -159,7 +167,7 @@ export default function TiemrMenu() {
                                 max={30}
                                 value={stopplateIndicatorLightUpDuration}
                                 onChange={
-                                    handleStopplateIndicatorLightUpDurationChange
+                                    handleStopplateIndicatorLightUpDurationChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void
                                 }
                             />
                         </Stack>
@@ -267,7 +275,8 @@ export default function TiemrMenu() {
                                 min={0}
                                 max={20}
                                 value={buzzerSoundDuration}
-                                onChange={handleBuzzerSoundDurationChange}
+                                // fucking typescript 
+                                onChange={handleBuzzerSoundDurationChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void}
                             />
                         </Stack>
                     </Stack>
@@ -300,7 +309,7 @@ export default function TiemrMenu() {
                                 min={0}
                                 max={8000}
                                 value={buzzerSoundFrequency}
-                                onChange={handleBuzzerSoundFrequencyChange}
+                                onChange={handleBuzzerSoundFrequencyChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void}
                             />
                         </Stack>
                     </Stack>
@@ -328,7 +337,7 @@ export default function TiemrMenu() {
                         </FormControl>
                     </Stack>
                 </Paper>
-                <Button fullWidth variant="outlined" color="warning" onClick={applySettings}>Apply</Button>
+                <Button fullWidth variant="outlined" color="warning" onClick={apply_settings}>Apply</Button>
             </Stack>
         </>
     );
