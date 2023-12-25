@@ -1,3 +1,5 @@
+import { BuzzerWaveformType } from "./buzzer";
+
 const SERVICE_UUID = "7a0247e7-8e88-409b-a959-ab5092ddb03e";
 const START_SIGNAL_CHARACTERISTIC_UUID = "3c224d84-566d-4f13-8b1c-2117021ff1a2";
 const STOP_SIGNAL_CHARACTERISTIC_UUID = "57b92756-3df4-4038-b825-fc8e1c2fdb5b";
@@ -34,8 +36,21 @@ function exponentialBackoff(
         });
 }
 
+// export interface {
+
+// }
+
+export interface StopplateSettingDTO {
+    indicator_light_up_duration: number;
+    countdown_random_time_min: number;
+    countdown_random_time_max: number;
+    buzzer_duration: number;
+    buzzer_frequency: number;
+    buzzer_waveform: number;
+}
+
 export class BLEStopplateService {
-    private static instance: BLEStopplateService;
+    static instance: BLEStopplateService;
 
     public static getInstance(): BLEStopplateService {
         if (!BLEStopplateService.instance) {
@@ -48,7 +63,7 @@ export class BLEStopplateService {
         // Private constructor to prevent direct instantiation
     }
 
-    public is_connected: boolean = false;
+    private _is_connected: boolean = false;
     public bluetooth_device?: BluetoothDevice;
     public bluetooth_gatt_server?: BluetoothRemoteGATTServer;
     public bluetooth_gatt_service?: BluetoothRemoteGATTService;
@@ -57,6 +72,10 @@ export class BLEStopplateService {
     public stopplate_signal_char?: BluetoothRemoteGATTCharacteristic;
     public setting_store_char?: BluetoothRemoteGATTCharacteristic;
     public on_hit_listener: ((event: Event, value: string) => void)[] = [];
+
+    public get is_connected() {
+        return this.bluetooth_gatt_server?.connected || false;
+    }
 
     private async scan_stopplate() {
         let ble_ui = await navigator.bluetooth.getAvailability();
@@ -73,13 +92,13 @@ export class BLEStopplateService {
         console.log("Connecting to GATT Server...");
         ble_device.addEventListener(
             "gattserverdisconnected",
-            this.on_device_connect
+            this.on_device_disconnect
         );
-        this.is_connected = true;
+        this._is_connected = true;
         return await ble_device.gatt.connect();
     }
-    private on_device_connect() {
-        if (this.is_connected) {
+    private on_device_disconnect() {
+        if (this._is_connected) {
             this.reconnect();
         }
     }
@@ -177,7 +196,7 @@ export class BLEStopplateService {
                 );
                 console.log("Time sync event: %s", val);
                 time_correction_char.writeValue(
-                    new TextEncoder().encode((Date.now()*0.001).toString())
+                    new TextEncoder().encode((Date.now() * 0.001).toString())
                 );
             }
         );
@@ -186,7 +205,7 @@ export class BLEStopplateService {
     }
 
     disconnect() {
-        this.normalDisconnect();
+        this.normal_disconnect();
     }
 
     reconnect() {
@@ -210,17 +229,18 @@ export class BLEStopplateService {
                     );
                     resolve();
                 },
-                function fail() {
+                () => {
                     time("Failed to reconnect.");
+                    this.normal_disconnect();
                     reject();
                 }
             );
         });
     }
 
-    private normalDisconnect() {
+    private normal_disconnect() {
         console.log("Disconnected");
-        this.is_connected = false;
+        this._is_connected = false;
         this.bluetooth_gatt_server?.disconnect();
         delete this.bluetooth_device;
         delete this.bluetooth_gatt_server;
@@ -229,5 +249,49 @@ export class BLEStopplateService {
         delete this.time_correction_char;
         delete this.stopplate_signal_char;
         delete this.setting_store_char;
+    }
+
+    async write_setting(
+        indicator_light_up_duration: number,
+        countdown_random_time_min: number,
+        countdown_random_time_max: number,
+        buzzer_duration: number,
+        buzzer_frequency: number,
+        buzzer_waveform: BuzzerWaveformType
+    ) {
+        indicator_light_up_duration = Math.round(indicator_light_up_duration);
+        buzzer_duration = Math.round(buzzer_duration);
+        buzzer_frequency = Math.round(buzzer_frequency);
+        console.log(
+            JSON.stringify({
+                indicator_light_up_duration,
+                countdown_random_time_min,
+                countdown_random_time_max,
+                buzzer_duration,
+                buzzer_frequency,
+                buzzer_waveform,
+            })
+        );
+        await this.setting_store_char?.writeValue(
+            new TextEncoder().encode(
+                JSON.stringify({
+                    indicator_light_up_duration,
+                    countdown_random_time_min,
+                    countdown_random_time_max,
+                    buzzer_duration,
+                    buzzer_frequency,
+                    buzzer_waveform,
+                })
+            )
+        );
+    }
+
+    async get_settings() {
+        let settingChar: DataView | undefined;
+        settingChar = await new Promise(async (resolve, reject) => {
+            settingChar = await this.setting_store_char?.readValue();
+            resolve(settingChar);
+        });
+        return JSON.parse(new TextDecoder().decode(settingChar)) as StopplateSettingDTO;
     }
 }

@@ -1,6 +1,7 @@
 "use client";
 import { BLEStopplateService } from "@/ble_service";
 import { BuzzerWaveformObject } from "@/buzzer";
+import { Delay } from "@/utils";
 import {
     Stack,
     Button,
@@ -98,45 +99,99 @@ export default function TiemrMenu() {
         setBuzzerSoundFrequency(val);
     };
 
-    const [buzzerWaveform, setBuzzerWaveform] =
+    const [buzzerSoundWaveform, setBuzzerWaveform] =
         React.useState<OscillatorType>("sawtooth");
     const handleBuzzerWaveformChange = (event: SelectChangeEvent) => {
         setBuzzerWaveform(event.target.value as OscillatorType);
     };
 
+    const [isStopplateConnected, setIsStopplateConnected] =
+        React.useState<boolean>(false);
+
     React.useEffect(() => {
         //prevent user leave before apply their settings
         is_apply = false;
-        window.addEventListener('beforeunload', (event) => {
+        window.addEventListener("beforeunload", (event) => {
             if (!is_apply) {
                 // Cancel the event as stated by the standard.
                 event.preventDefault();
                 // Chrome requires returnValue to be set.
-                event.returnValue = 'Sure?';
+                event.returnValue = "Sure?";
             }
         });
-    })
+        update_connect_state();
+    });
 
     const apply_settings = () => {
         is_apply = true;
-        window.removeEventListener('beforeunload', () => { })
+        window.removeEventListener("beforeunload", () => { });
+        BLEStopplateService.getInstance().write_setting(
+            stopplateIndicatorLightUpDuration,
+            timerCountdownRandomRange.min,
+            timerCountdownRandomRange.max,
+            buzzerSoundDuration,
+            buzzerSoundFrequency,
+            BuzzerWaveformObject.findIndex((value, index) => {
+                if (value == buzzerSoundWaveform)
+                    return index
+            })
+        );
+    };
+
+    async function connect_to_ble_stopplate() {
+        await BLEStopplateService.getInstance().scan_and_connect_stopplate();
+        update_connect_state();
+        await Delay(500);
+        update_setting_from_stopplate();
     }
 
-    function connect_to_ble_stopplate() {
-        BLEStopplateService.getInstance().scan_and_connect_stopplate();
-    }
-
-    function disconnect() {
+    async function disconnect() {
         BLEStopplateService.getInstance().disconnect();
+        update_connect_state();
+    }
+    React.useMemo(async () => {
+        update_connect_state();
+        update_setting_from_stopplate();
+    }, [])
+
+    async function update_setting_from_stopplate() {
+        console.log('update_setting_from_stopplate', BLEStopplateService.getInstance().is_connected);
+        if (BLEStopplateService.getInstance().is_connected) {
+            let setting = await BLEStopplateService.getInstance().get_settings();
+            console.log(setting);
+            setStopplateIndicatorLightUpDuration(setting.indicator_light_up_duration);
+            setTimerCountdownRandomRange({
+                min: setting.countdown_random_time_min,
+                max: setting.countdown_random_time_max
+            });
+            setBuzzerSoundDuration(setting.buzzer_duration);
+            setBuzzerSoundFrequency(setting.buzzer_frequency);
+            setBuzzerWaveform(BuzzerWaveformObject[setting.buzzer_waveform]);
+        }
     }
 
+    async function update_connect_state() {
+        setIsStopplateConnected(BLEStopplateService.getInstance().is_connected);
+    }
+
+    const AlwaysShow = () => <ButtonGroup fullWidth>
+        <Button
+            variant="contained"
+            onClick={connect_to_ble_stopplate}
+        >
+            Connect
+        </Button>
+        <Button onClick={disconnect}>Disconnect</Button>
+    </ButtonGroup>
+
+
+    if (!isStopplateConnected) {
+        return <AlwaysShow />
+    }
     return (
         <>
             <Stack gap={2} divider={<Divider />}>
-                <ButtonGroup fullWidth>
-                    <Button variant="contained" onClick={connect_to_ble_stopplate}>Connect</Button>
-                    <Button onClick={disconnect}>Disconnect</Button>
-                </ButtonGroup>
+                <AlwaysShow />
                 <Paper elevation={10} sx={{ padding: 1 }}>
                     <Stack gap={1}>
                         <SettingTagTypography>
@@ -167,7 +222,11 @@ export default function TiemrMenu() {
                                 max={30}
                                 value={stopplateIndicatorLightUpDuration}
                                 onChange={
-                                    handleStopplateIndicatorLightUpDurationChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void
+                                    handleStopplateIndicatorLightUpDurationChange as unknown as (
+                                        event: Event,
+                                        value: number | number[],
+                                        activeThumb: number
+                                    ) => void
                                 }
                             />
                         </Stack>
@@ -275,8 +334,14 @@ export default function TiemrMenu() {
                                 min={0}
                                 max={20}
                                 value={buzzerSoundDuration}
-                                // fucking typescript 
-                                onChange={handleBuzzerSoundDurationChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void}
+                                // fucking typescript
+                                onChange={
+                                    handleBuzzerSoundDurationChange as unknown as (
+                                        event: Event,
+                                        value: number | number[],
+                                        activeThumb: number
+                                    ) => void
+                                }
                             />
                         </Stack>
                     </Stack>
@@ -309,7 +374,13 @@ export default function TiemrMenu() {
                                 min={0}
                                 max={8000}
                                 value={buzzerSoundFrequency}
-                                onChange={handleBuzzerSoundFrequencyChange as unknown as (event: Event, value: number | number[], activeThumb: number) => void}
+                                onChange={
+                                    handleBuzzerSoundFrequencyChange as unknown as (
+                                        event: Event,
+                                        value: number | number[],
+                                        activeThumb: number
+                                    ) => void
+                                }
                             />
                         </Stack>
                     </Stack>
@@ -324,7 +395,7 @@ export default function TiemrMenu() {
                                 Waveform
                             </InputLabel>
                             <Select
-                                value={buzzerWaveform}
+                                value={buzzerSoundWaveform}
                                 label="Waveform"
                                 onChange={handleBuzzerWaveformChange}
                             >
@@ -337,7 +408,14 @@ export default function TiemrMenu() {
                         </FormControl>
                     </Stack>
                 </Paper>
-                <Button fullWidth variant="outlined" color="warning" onClick={apply_settings}>Apply</Button>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    color="warning"
+                    onClick={apply_settings}
+                >
+                    Apply
+                </Button>
             </Stack>
         </>
     );

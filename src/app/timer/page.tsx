@@ -9,6 +9,10 @@ import React from "react";
 import { BuzzerWaveformObject, BuzzerWaveformType, beep } from "@/buzzer";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
 import Link from "next/link";
+import { Delay } from "@/utils";
+import { useRouter } from "next/navigation";
+import { BLEStopplateService } from "@/ble_service";
+
 
 const TimerOperatingButton = styled(Button)(({ theme }) => ({
     textAlign: "center",
@@ -37,14 +41,6 @@ function randomInRange(min: number, max: number) {
     return Math.random() * (max - min) + min;
 }
 
-async function Delay(ms: number): Promise<void> {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            resolve();
-        }, ms);
-    });
-}
-
 
 export default function () {
     const [displayTime, setDisplayTime] = React.useState<number>(0.0);
@@ -61,7 +57,8 @@ export default function () {
      */
     async function countdown() {
         var timer_countdown_break_flag = false;
-        let countdown_second = randomInRange(1, 4);
+        let settings = await BLEStopplateService.getInstance().get_settings();
+        let countdown_second = randomInRange(settings.countdown_random_time_min, settings.countdown_random_time_max);
         let start_stamp = Date.now();
         window.addEventListener("countdown_break", () => {
             timer_countdown_break_flag = true;
@@ -89,11 +86,16 @@ export default function () {
         });
         if (!timer_countdown_break_flag) {
             setDisplayTime(0);
-            beep(1024, BuzzerWaveformObject[BuzzerWaveformType.Triangle], 1000);
+            beep(settings.buzzer_frequency, BuzzerWaveformObject[settings.buzzer_waveform], settings.buzzer_duration);
         }
     }
     function break_countdown() {
         window.dispatchEvent(new Event("countdown_break")); // or whatever the event type might be
+    }
+    const router = useRouter()
+
+    function route_to_menu() {
+        router.push(ROUTE_LIST[EROUTE_LIST.TimerMenu].dir);
     }
 
     return (
@@ -124,7 +126,7 @@ export default function () {
                         <TimerOperatingButton
                             variant="outlined"
                             disabled={timerOperatingButtonsDisable.menu}
-                            href={`${ROUTE_LIST[EROUTE_LIST.TimerMenu].dir}`}
+                            onClick={route_to_menu}
                         >
                             Menu
                         </TimerOperatingButton>
