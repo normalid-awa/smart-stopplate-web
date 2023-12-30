@@ -1,6 +1,6 @@
 "use client";
 import { BLEStopplateService } from "@/ble_service";
-import { BuzzerWaveformObject } from "@/buzzer";
+import { Buzzer, BuzzerWaveformObject, beep } from "@/buzzer";
 import { Delay } from "@/utils";
 import {
     Stack,
@@ -108,23 +108,26 @@ export default function TiemrMenu() {
     const [isStopplateConnected, setIsStopplateConnected] =
         React.useState<boolean>(false);
 
+    const stick_activation_handler = (event: BeforeUnloadEvent) => {
+        // Cancel the event as stated by the standard.
+        event.preventDefault();
+        // Chrome requires returnValue to be set.
+        event.returnValue = "Sure?";
+    }
+
     React.useEffect(() => {
         //prevent user leave before apply their settings
         is_apply = false;
-        window.addEventListener("beforeunload", (event) => {
-            if (!is_apply) {
-                // Cancel the event as stated by the standard.
-                event.preventDefault();
-                // Chrome requires returnValue to be set.
-                event.returnValue = "Sure?";
-            }
-        });
+        window.addEventListener("beforeunload", stick_activation_handler);
         update_connect_state();
-    });
+        return () => {
+            console.log("unload");
+            window.removeEventListener("beforeunload", stick_activation_handler);
+        }
+    }, []);
 
     const apply_settings = () => {
         is_apply = true;
-        window.removeEventListener("beforeunload", () => { });
         BLEStopplateService.getInstance().write_setting(
             stopplateIndicatorLightUpDuration,
             timerCountdownRandomRange.min,
@@ -142,6 +145,8 @@ export default function TiemrMenu() {
         await BLEStopplateService.getInstance().scan_and_connect_stopplate();
         update_connect_state();
         await Delay(500);
+        update_connect_state();
+        await Delay(500);
         update_setting_from_stopplate();
     }
 
@@ -149,7 +154,7 @@ export default function TiemrMenu() {
         BLEStopplateService.getInstance().disconnect();
         update_connect_state();
     }
-    React.useMemo(async () => {
+    React.useMemo(() => {
         update_connect_state();
         update_setting_from_stopplate();
     }, [])
@@ -157,21 +162,31 @@ export default function TiemrMenu() {
     async function update_setting_from_stopplate() {
         console.log('update_setting_from_stopplate', BLEStopplateService.getInstance().is_connected);
         if (BLEStopplateService.getInstance().is_connected) {
-            let setting = await BLEStopplateService.getInstance().get_settings();
-            console.log(setting);
-            setStopplateIndicatorLightUpDuration(setting.indicator_light_up_duration);
-            setTimerCountdownRandomRange({
-                min: setting.countdown_random_time_min,
-                max: setting.countdown_random_time_max
-            });
-            setBuzzerSoundDuration(setting.buzzer_duration);
-            setBuzzerSoundFrequency(setting.buzzer_frequency);
-            setBuzzerWaveform(BuzzerWaveformObject[setting.buzzer_waveform]);
+            try {
+                let setting = await BLEStopplateService.getInstance().get_settings();
+                console.log(setting);
+                setStopplateIndicatorLightUpDuration(setting.indicator_light_up_duration);
+                setTimerCountdownRandomRange({
+                    min: setting.countdown_random_time_min,
+                    max: setting.countdown_random_time_max
+                });
+                setBuzzerSoundDuration(setting.buzzer_duration);
+                setBuzzerSoundFrequency(setting.buzzer_frequency);
+                setBuzzerWaveform(BuzzerWaveformObject[setting.buzzer_waveform]);
+            } catch (e) {
+                update_setting_from_stopplate();
+                return;
+            }
         }
     }
 
     async function update_connect_state() {
         setIsStopplateConnected(BLEStopplateService.getInstance().is_connected);
+    }
+
+    const test_buzzer = () => {
+        beep(buzzerSoundFrequency, buzzerSoundWaveform, buzzerSoundDuration * 1000);
+
     }
 
     const AlwaysShow = () => <ButtonGroup fullWidth>
@@ -408,6 +423,13 @@ export default function TiemrMenu() {
                         </FormControl>
                     </Stack>
                 </Paper>
+                <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={test_buzzer}
+                >
+                    Test buzzer
+                </Button>
                 <Button
                     fullWidth
                     variant="outlined"

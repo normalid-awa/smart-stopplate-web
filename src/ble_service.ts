@@ -3,12 +3,15 @@ import { BuzzerWaveformType } from "./buzzer";
 const SERVICE_UUID = "7a0247e7-8e88-409b-a959-ab5092ddb03e";
 const START_SIGNAL_CHARACTERISTIC_UUID = "3c224d84-566d-4f13-8b1c-2117021ff1a2";
 const STOP_SIGNAL_CHARACTERISTIC_UUID = "57b92756-3df4-4038-b825-fc8e1c2fdb5b";
-const TIME_SYNC_CHARACTERISTIC_UUID = "840a0941-55e9-44e4-bfff-1c3c27bf6af0";
+const TIME_SYNC_REQUEST_CHARACTERISTIC_UUID =
+    "840a0941-55e9-44e4-bfff-1c3c27bf6af0";
+const TIME_SYNC_WRITE_CHARACTERISTIC_UUID =
+    "e0832e3e-f1e1-43b1-9569-109e2770e3ed";
 const SETTING_CHARACTERISTIC_UUID = "798f2478-4c44-417f-bb6e-ee2a826cc17c";
-
 export interface StopplateCharacteristic {
     start_signal_char: BluetoothRemoteGATTCharacteristic;
-    time_correction_char: BluetoothRemoteGATTCharacteristic;
+    time_sync_request_char: BluetoothRemoteGATTCharacteristic;
+    time_sync_write_char: BluetoothRemoteGATTCharacteristic;
     stopplate_signal_char: BluetoothRemoteGATTCharacteristic;
     setting_store_char: BluetoothRemoteGATTCharacteristic;
 }
@@ -36,10 +39,6 @@ function exponentialBackoff(
         });
 }
 
-// export interface {
-
-// }
-
 export interface StopplateSettingDTO {
     indicator_light_up_duration: number;
     countdown_random_time_min: number;
@@ -49,6 +48,14 @@ export interface StopplateSettingDTO {
     buzzer_waveform: number;
 }
 
+export type HitCallbackID = number;
+export type HitCallback = (event: Event, value: string) => void;
+export class NotConnectException extends Error {
+    message: string = "Not Connected";
+    constructor(message: string) {
+        super(message);
+    }
+}
 export class BLEStopplateService {
     static instance: BLEStopplateService;
 
@@ -68,10 +75,11 @@ export class BLEStopplateService {
     public bluetooth_gatt_server?: BluetoothRemoteGATTServer;
     public bluetooth_gatt_service?: BluetoothRemoteGATTService;
     public start_signal_char?: BluetoothRemoteGATTCharacteristic;
-    public time_correction_char?: BluetoothRemoteGATTCharacteristic;
+    public time_sync_request_char?: BluetoothRemoteGATTCharacteristic;
+    public time_sync_write_char?: BluetoothRemoteGATTCharacteristic;
     public stopplate_signal_char?: BluetoothRemoteGATTCharacteristic;
     public setting_store_char?: BluetoothRemoteGATTCharacteristic;
-    public on_hit_listener: ((event: Event, value: string) => void)[] = [];
+    public on_hit_listener: HitCallback[] = [];
 
     public get is_connected() {
         return this.bluetooth_gatt_server?.connected || false;
@@ -121,8 +129,11 @@ export class BLEStopplateService {
         let start_signal_char = await ble_service.getCharacteristic(
             START_SIGNAL_CHARACTERISTIC_UUID
         );
-        let time_correction_char = await ble_service.getCharacteristic(
-            TIME_SYNC_CHARACTERISTIC_UUID
+        let time_sync_request_char = await ble_service.getCharacteristic(
+            TIME_SYNC_REQUEST_CHARACTERISTIC_UUID
+        );
+        let time_sync_write_char = await ble_service.getCharacteristic(
+            TIME_SYNC_WRITE_CHARACTERISTIC_UUID
         );
         let setting_store_char = await ble_service.getCharacteristic(
             SETTING_CHARACTERISTIC_UUID
@@ -132,7 +143,8 @@ export class BLEStopplateService {
             stopplate_signal_char,
             setting_store_char,
             start_signal_char,
-            time_correction_char,
+            time_sync_request_char,
+            time_sync_write_char,
         };
     }
     public async scan_and_connect_stopplate() {
@@ -147,23 +159,26 @@ export class BLEStopplateService {
         );
         let {
             start_signal_char,
-            time_correction_char,
             stopplate_signal_char,
             setting_store_char,
+            time_sync_request_char,
+            time_sync_write_char,
         } = await this.retrive_stopplate_characteristic(
             this.bluetooth_gatt_service
         );
         if (
-            !time_correction_char ||
-            !time_correction_char ||
+            !time_sync_request_char ||
+            !time_sync_write_char ||
             !stopplate_signal_char ||
-            !setting_store_char
+            !setting_store_char ||
+            !start_signal_char
         ) {
             this.disconnect();
             return;
         }
         this.start_signal_char = start_signal_char;
-        this.time_correction_char = time_correction_char;
+        this.time_sync_request_char = time_sync_request_char;
+        this.time_sync_write_char = time_sync_write_char;
         this.stopplate_signal_char = stopplate_signal_char;
         this.setting_store_char = setting_store_char;
         await stopplate_signal_char.startNotifications();
@@ -183,24 +198,18 @@ export class BLEStopplateService {
                 });
             }
         );
-        await time_correction_char.startNotifications();
-        time_correction_char.addEventListener(
+        await time_sync_request_char.startNotifications();
+        time_sync_request_char.addEventListener(
             "characteristicvaluechanged",
             (event: Event) => {
-                let val = new TextDecoder().decode(
-                    (
-                        event as unknown as {
-                            target: { value: BufferSource };
-                        }
-                    ).target.value as BufferSource
-                );
-                console.log("Time sync event: %s", val);
-                time_correction_char.writeValue(
-                    new TextEncoder().encode((Date.now() * 0.001).toString())
+                time_sync_write_char.writeValue(
+                    new TextEncoder().encode(
+                        this.get_precision_time().toString()
+                    )
                 );
             }
         );
-        await time_correction_char.writeValue(new TextEncoder().encode("INIT"));
+        this.perform_time_sync();
         console.log("BLE connect succes");
     }
 
@@ -238,6 +247,12 @@ export class BLEStopplateService {
         });
     }
 
+    async perform_time_sync() {
+        await this.time_sync_request_char?.writeValue(
+            new TextEncoder().encode("INIT")
+        );
+    }
+
     private normal_disconnect() {
         console.log("Disconnected");
         this._is_connected = false;
@@ -246,11 +261,11 @@ export class BLEStopplateService {
         delete this.bluetooth_gatt_server;
         delete this.bluetooth_gatt_service;
         delete this.start_signal_char;
-        delete this.time_correction_char;
+        delete this.time_sync_request_char;
+        delete this.time_sync_write_char;
         delete this.stopplate_signal_char;
         delete this.setting_store_char;
     }
-
     async write_setting(
         indicator_light_up_duration: number,
         countdown_random_time_min: number,
@@ -285,13 +300,35 @@ export class BLEStopplateService {
             )
         );
     }
-
     async get_settings() {
         let settingChar: DataView | undefined;
-        settingChar = await new Promise(async (resolve, reject) => {
-            settingChar = await this.setting_store_char?.readValue();
-            resolve(settingChar);
-        });
-        return JSON.parse(new TextDecoder().decode(settingChar)) as StopplateSettingDTO;
+        settingChar = await this.setting_store_char?.readValue();
+        return JSON.parse(
+            new TextDecoder().decode(settingChar)
+        ) as StopplateSettingDTO;
+    }
+    checkConnectionState() {
+        return this.is_connected;
+    }
+
+    register_hit_callback(
+        callback: (event: Event, value: string) => void
+    ): HitCallbackID {
+        let cbid = Math.round(Math.random() * 10000);
+        this.on_hit_listener[cbid] = callback;
+        return cbid;
+    }
+    remove_hit_callback(cb_id: HitCallbackID) {
+        delete this.on_hit_listener[cb_id];
+    }
+
+    start_timer() {
+        this.start_signal_char?.writeValue(
+            new TextEncoder().encode(this.get_precision_time().toString())
+        );
+    }
+
+    private get_precision_time() {
+        return Date.now() * 0.001
     }
 }

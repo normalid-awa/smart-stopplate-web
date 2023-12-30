@@ -2,6 +2,7 @@ import {
     HomeOutlined,
     HourglassBottomOutlined,
     PeopleOutlined,
+    Settings,
     SnippetFolderOutlined,
     SvgIconComponent,
 } from "@mui/icons-material";
@@ -19,9 +20,15 @@ export enum EROUTE_LIST {
     Stages,
     Timer,
     TimerMenu,
+    Setting,
 }
 export const ROUTE_LIST: IRouteList[] = [
-    { display_name: "Home", dir: "/", show_on_sidebar: true, icon: HomeOutlined },
+    {
+        display_name: "Home",
+        dir: "/",
+        show_on_sidebar: true,
+        icon: HomeOutlined,
+    },
     {
         display_name: "Shooters",
         dir: "/",
@@ -45,5 +52,11 @@ export const ROUTE_LIST: IRouteList[] = [
         dir: "/timer/menu",
         show_on_sidebar: false,
         icon: HourglassBottomOutlined,
+    },
+    {
+        display_name: "Settings",
+        dir: "/settings",
+        show_on_sidebar: true,
+        icon: Settings,
     },
 ];
