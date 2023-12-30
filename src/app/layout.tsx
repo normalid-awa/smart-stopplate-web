@@ -13,6 +13,8 @@ import { ROUTE_LIST } from '../constant';
 import Link from 'next/link';
 import Stack from '@mui/material/Stack';
 
+import { BLEStopplateService } from "@/ble_service";
+
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,6 +39,10 @@ const Drawer = () => {
 				height: "3rem",
 			}} sx={{ ".MuiButton-endIcon": { margin: 0 } }} {...props}><></></Button>
 	}
+
+	React.useMemo(() => {
+		BLEStopplateService.getInstance();
+	},[])
 
 	return <Paper elevation={10} style={{ height: "100vh" }}>
 		<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
