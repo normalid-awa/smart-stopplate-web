@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
+        "ssl": "local-ssl-proxy --source 3001 --target 3000",
         "build": "next build",
         "start": "next start",
         "lint": "next lint"
@@ -15,6 +16,7 @@
         "@mui/icons-material": "^5.15.1",
         "@mui/material": "^5.15.2",
         "@types/web-bluetooth": "^0.0.20",
+        "local-ssl-proxy": "^2.0.5",
         "next": "14.0.4",
         "react": "^18",
         "react-dom": "^18"

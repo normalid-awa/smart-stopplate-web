@@ -209,11 +209,15 @@ export default function TimerPage(props: TimerProps) {
     }
 
     React.useEffect(() => {
-        window.addEventListener("beforeunload", stick_activation_handler);
+        const handleBeforeUnload = (event: Event) => {
+            // Perform actions before the component unloads
+            event.preventDefault();
+            event.returnValue = true;
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
-            console.log("unload");
-            window.removeEventListener("beforeunload", stick_activation_handler);
-        }
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, []);
 
     const assign_button_handler = () => {

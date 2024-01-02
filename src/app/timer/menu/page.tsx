@@ -108,22 +108,18 @@ export default function TiemrMenu() {
     const [isStopplateConnected, setIsStopplateConnected] =
         React.useState<boolean>(false);
 
-    const stick_activation_handler = (event: BeforeUnloadEvent) => {
-        // Cancel the event as stated by the standard.
-        event.preventDefault();
-        // Chrome requires returnValue to be set.
-        event.returnValue = "Sure?";
-    }
 
     React.useEffect(() => {
-        //prevent user leave before apply their settings
         is_apply = false;
-        window.addEventListener("beforeunload", stick_activation_handler);
-        update_connect_state();
+        const handleBeforeUnload = (event: Event) => {
+            // Perform actions before the component unloads
+            event.preventDefault();
+            event.returnValue = true;
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
-            console.log("unload");
-            window.removeEventListener("beforeunload", stick_activation_handler);
-        }
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, []);
 
     const apply_settings = () => {

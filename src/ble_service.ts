@@ -192,7 +192,7 @@ export class BLEStopplateService {
                         }
                     ).target.value as BufferSource
                 );
-                console.log("Hit data: %s", val);
+                console.log("Hit data: %s current %s", val, Date.now());
                 this.on_hit_listener.forEach((cb) => {
                     cb(event, val);
                 });
@@ -329,6 +329,6 @@ export class BLEStopplateService {
     }
 
     private get_precision_time() {
-        return Date.now() * 0.001
+        return Date.now() * 0.001;
     }
 }
