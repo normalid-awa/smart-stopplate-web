@@ -37,7 +37,7 @@ export const ROUTE_LIST: IRouteList[] = [
     },
     {
         display_name: "Stages",
-        dir: "/",
+        dir: "/stages",
         show_on_sidebar: true,
         icon: SnippetFolderOutlined,
     },

@@ -12,6 +12,8 @@ import { HomeOutlined, ArrowBack, Menu, PeopleOutlined, SnippetFolderOutlined, H
 import { ROUTE_LIST } from '../constant';
 import Link from 'next/link';
 import Stack from '@mui/material/Stack';
+import { ApolloProvider, ApolloClient, InMemoryCache, gql } from "@apollo/client";
+import { SchemaLink } from '@apollo/client/link/schema';
 
 import { BLEStopplateService } from "@/ble_service";
 
@@ -42,7 +44,7 @@ const Drawer = () => {
 
 	React.useMemo(() => {
 		BLEStopplateService.getInstance();
-	},[])
+	}, [])
 
 	return <Paper elevation={10} style={{ height: "100vh" }}>
 		<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
@@ -66,6 +68,15 @@ export const themeOptions: ThemeOptions = createTheme({
 	}
 });
 
+
+
+
+const client = new ApolloClient({
+	uri: "https://192.168.0.126:8081/",
+	cache: new InMemoryCache(),
+});
+
+
 export default function RootLayout({
 	children,
 }: {
@@ -74,17 +85,22 @@ export default function RootLayout({
 	const theme = useTheme();
 	return (
 		<html lang="en">
+			<head>
+				<meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+			</head>
 			<body className={inter.className}>
 				<ThemeProvider theme={themeOptions}>
 					<CssBaseline />
-					<Paper>
-						<Stack direction={"row"}>
-							<Drawer />
-							<Box component="main" sx={{ flexGrow: 1, p: 3, overflow: "auto", height: "100vh", scrollBehavior: "auto" }}>
-								{children}
-							</Box>
-						</Stack>
-					</Paper>
+					<ApolloProvider client={client}>
+						<Paper>
+							<Stack direction={"row"}>
+								<Drawer />
+								<Box component="main" sx={{ flexGrow: 1, p: 3, overflow: "auto", height: "100vh", scrollBehavior: "auto" }}>
+									{children}
+								</Box>
+							</Stack>
+						</Paper>
+					</ApolloProvider>
 				</ThemeProvider>
 			</body>
 		</html>
