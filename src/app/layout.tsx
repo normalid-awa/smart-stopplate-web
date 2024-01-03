@@ -72,7 +72,7 @@ export const themeOptions: ThemeOptions = createTheme({
 
 
 const client = new ApolloClient({
-	uri: "https://192.168.0.126:8081/",
+	uri: process.env.backendUrl,
 	cache: new InMemoryCache(),
 });
 
