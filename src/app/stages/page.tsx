@@ -7,7 +7,9 @@ import {
     Button,
     Dialog,
     Divider,
+    Fab,
     Grid,
+    Grow,
     IconButton,
     Paper,
     Stack,
@@ -18,6 +20,7 @@ import React from "react";
 import {
     DataGrid,
     GridCallbackDetails,
+    GridCellCheckboxForwardRef,
     GridCellParams,
     GridColDef,
     GridToolbar,
@@ -25,8 +28,9 @@ import {
     zhTW,
 } from "@mui/x-data-grid";
 import { useDemoData } from "@mui/x-data-grid-generator";
-import { Lock, Delete, Edit } from "@mui/icons-material";
+import { Lock, Delete, Edit, Add } from "@mui/icons-material";
 import StageInfoDialog from "./stageInfoDialog";
+import CreateStageDialog from "./createStageDialog";
 const GET_ALL_STAGES_QUERY = gql`
     query GetAllStages {
         getAllStages {
@@ -40,6 +44,8 @@ const GET_ALL_STAGES_QUERY = gql`
             minimumRounds
             maximumPoints
             isLocked
+            type
+            condition
         }
     }
 `;
@@ -132,6 +138,27 @@ const columns: GridColDef[] = [
         flex: 0.2,
     },
     {
+        field: "Type",
+        valueGetter: (params) => {
+            let capitalized =
+                params.row.type.charAt(0).toUpperCase()
+                + params.row.type.slice(1)
+            return capitalized;
+        },
+        type: "number",
+        minWidth: 80,
+        flex: 0.1,
+    },
+    {
+        field: "Condition",
+        valueGetter: (params) => {
+            return "Condition " + params.row.condition;
+        },
+        type: "number",
+        minWidth: 120,
+        flex: 0.1,
+    },
+    {
         field: "Papers",
         valueGetter: (params) => {
             return params.row.paperTargets;
@@ -181,6 +208,8 @@ const columns: GridColDef[] = [
 var get_stage_ref: QueryResult<Query, OperationVariables>;
 export default function StagesPage() {
     const [stageInfoOpen, setStageInfoOpen] = React.useState(false);
+    const [createStageOpen, setCreateStageOpen] = React.useState(false);
+    const [dialogOpen, setDialogOpen] = React.useState(false);
     const [stageInfoId, setStageInfoId] = React.useState(0);
 
     const all_stage_info = useQuery<Query>(GET_ALL_STAGES_QUERY);
@@ -193,6 +222,10 @@ export default function StagesPage() {
     if (all_stage_info.error) return <pre>{all_stage_info.error.message}</pre>;
     if (!all_stage_info.data) return <pre>no data</pre>;
 
+    function close_all_windows() {
+        setStageInfoOpen(false);
+        setCreateStageOpen(false);
+    }
 
     return (
         <>
@@ -213,22 +246,46 @@ export default function StagesPage() {
                             event: MuiEvent<React.MouseEvent<HTMLElement>>,
                             detail: GridCallbackDetails
                         ) => {
+                            if (params.field == "actions")
+                                return
                             console.log(params, event, detail);
                             setStageInfoId(params.row.id)
                             setStageInfoOpen(true);
+                            setDialogOpen(true);
                         }}
                     />
                 </Box>
             </Stack>
             <Dialog
                 sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
-                open={stageInfoOpen}
-                onClose={() => setStageInfoOpen(false)}
+                open={dialogOpen}
+                onClose={() => {
+                    setDialogOpen(false);
+                    close_all_windows();
+                }}
                 fullWidth
                 maxWidth={"md"}
             >
                 {stageInfoOpen ? <StageInfoDialog stage_id={stageInfoId} /> : <></>}
+                {createStageOpen ? <CreateStageDialog onClose={() => {
+                    setDialogOpen(false);
+                    close_all_windows();
+                }} /> : <></>}
             </Dialog>
+            <Fab sx={{
+                position: 'absolute',
+                bottom: 50,
+                right: 50,
+            }}
+                color="primary"
+                onClick={() => {
+                    setCreateStageOpen(true);
+                    setDialogOpen(true);
+                    get_stage_ref.refetch();
+                }}
+            >
+                <Add />
+            </Fab>
         </>
     );
 }
