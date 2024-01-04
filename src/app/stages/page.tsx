@@ -2,8 +2,10 @@
 import { Query, Stage } from "@/gql_dto";
 import { useQuery, gql, useMutation, QueryResult, OperationVariables } from "@apollo/client";
 import {
+    Backdrop,
     Box,
     Button,
+    Dialog,
     Divider,
     Grid,
     IconButton,
@@ -24,6 +26,7 @@ import {
 } from "@mui/x-data-grid";
 import { useDemoData } from "@mui/x-data-grid-generator";
 import { Lock, Delete, Edit } from "@mui/icons-material";
+import StageInfoDialog from "./stageInfoDialog";
 const GET_ALL_STAGES_QUERY = gql`
     query GetAllStages {
         getAllStages {
@@ -177,13 +180,20 @@ const columns: GridColDef[] = [
 ];
 var get_stage_ref: QueryResult<Query, OperationVariables>;
 export default function StagesPage() {
+    const [stageInfoOpen, setStageInfoOpen] = React.useState(false);
+    const [stageInfoId, setStageInfoId] = React.useState(0);
+
     const all_stage_info = useQuery<Query>(GET_ALL_STAGES_QUERY);
     React.useEffect(() => {
         get_stage_ref = all_stage_info
     }, [])
+
+
     if (all_stage_info.loading) return "Loading...";
     if (all_stage_info.error) return <pre>{all_stage_info.error.message}</pre>;
     if (!all_stage_info.data) return <pre>no data</pre>;
+
+
     return (
         <>
             <Stack>
@@ -204,10 +214,21 @@ export default function StagesPage() {
                             detail: GridCallbackDetails
                         ) => {
                             console.log(params, event, detail);
+                            setStageInfoId(params.row.id)
+                            setStageInfoOpen(true);
                         }}
                     />
                 </Box>
             </Stack>
+            <Dialog
+                sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={stageInfoOpen}
+                onClose={() => setStageInfoOpen(false)}
+                fullWidth
+                maxWidth={"md"}
+            >
+                {stageInfoOpen ? <StageInfoDialog stage_id={stageInfoId} /> : <></>}
+            </Dialog>
         </>
     );
 }
