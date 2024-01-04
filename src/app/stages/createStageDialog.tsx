@@ -31,12 +31,13 @@ interface CreateStageDialogProps {
 }
 
 const CREATE_STAGE_MUTATION = gql`
-    mutation LockStage(
+    mutation CreateStage(
         $name: String!
         $description: String!
         $noShoots: Int!
         $paperTargets: Int!
         $popperTargets: Int!
+        $condition: Int!
     ) {
         createStage(
             name: $name
@@ -44,6 +45,7 @@ const CREATE_STAGE_MUTATION = gql`
             noShoots: $noShoots
             paperTargets: $paperTargets
             popperTargets: $popperTargets
+            condition: $condition
         ) {
             id
         }
@@ -85,7 +87,7 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
     }
 
     function submit_form() {
-        if (!cheack_form_complete())
+        if (cheack_form_complete())
             return;
         create_stage({
             variables: {

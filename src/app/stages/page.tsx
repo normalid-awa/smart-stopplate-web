@@ -117,7 +117,6 @@ const columns: GridColDef[] = [
         align: "center",
         // width: 1,
         flex: 0.01,
-        pinnable: true,
     },
     {
         field: "Name",
@@ -126,7 +125,6 @@ const columns: GridColDef[] = [
         },
         minWidth: 200,
         flex: 1,
-        resizable: true,
     },
     {
         field: "Created at",
@@ -145,7 +143,7 @@ const columns: GridColDef[] = [
                 + params.row.type.slice(1)
             return capitalized;
         },
-        type: "number",
+        type: "string",
         minWidth: 80,
         flex: 0.1,
     },
@@ -154,7 +152,7 @@ const columns: GridColDef[] = [
         valueGetter: (params) => {
             return "Condition " + params.row.condition;
         },
-        type: "number",
+        type: "string",
         minWidth: 120,
         flex: 0.1,
     },
