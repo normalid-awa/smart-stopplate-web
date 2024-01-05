@@ -1,6 +1,6 @@
 "use client";
-import { Query, Stage } from "@/gql_dto";
-import { useQuery, gql, useMutation, QueryResult, OperationVariables } from "@apollo/client";
+import { Query, Stage, Subscription } from "@/gql_dto";
+import { ApolloProvider, ApolloClient, InMemoryCache, gql, ApolloLink, concat, HttpLink, useMutation, useSubscription, useQuery } from "@apollo/client";
 import {
     Backdrop,
     Box,
@@ -31,6 +31,11 @@ import { useDemoData } from "@mui/x-data-grid-generator";
 import { Lock, Delete, Edit, Add } from "@mui/icons-material";
 import StageInfoDialog from "./stageInfoDialog";
 import CreateStageDialog from "./createStageDialog";
+
+import { createClient } from "graphql-ws";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+
+
 const GET_ALL_STAGES_QUERY = gql`
     query GetAllStages {
         getAllStages {
@@ -47,6 +52,11 @@ const GET_ALL_STAGES_QUERY = gql`
             type
             condition
         }
+    }
+`;
+const STAGE_UPDATE_SUBSCRIPTION = gql`
+    subscription SubscribeToStageUpdate{
+        subscribeToStageUpdate
     }
 `;
 
@@ -75,9 +85,7 @@ const DeleteActionButton = (props: ActionButtonProps) => {
             return;
 
         delete_stage({
-            variables: { ID: props.row.id }, onCompleted(data, clientOptions) {
-                get_stage_ref.refetch();
-            },
+            variables: { ID: props.row.id }
         });
     }}>
         <Delete />
@@ -91,9 +99,7 @@ const LockActionButton = (props: ActionButtonProps) => {
             return;
 
         lock_stage({
-            variables: { ID: props.row.id }, onCompleted(data, clientOptions) {
-                get_stage_ref.refetch();
-            },
+            variables: { ID: props.row.id }
         });
     }}>
         <Lock />
@@ -203,7 +209,8 @@ const columns: GridColDef[] = [
         },
     },
 ];
-var get_stage_ref: QueryResult<Query, OperationVariables>;
+
+var inited = false;
 export default function StagesPage() {
     const [stageInfoOpen, setStageInfoOpen] = React.useState(false);
     const [createStageOpen, setCreateStageOpen] = React.useState(false);
@@ -211,9 +218,14 @@ export default function StagesPage() {
     const [stageInfoId, setStageInfoId] = React.useState(0);
 
     const all_stage_info = useQuery<Query>(GET_ALL_STAGES_QUERY);
-    React.useEffect(() => {
-        get_stage_ref = all_stage_info
-    }, [])
+    const stage_update_subscription = useSubscription<Subscription>(STAGE_UPDATE_SUBSCRIPTION, {
+        onData({data}) {
+            console.log(data.data?.subscribeToStageUpdate)
+            all_stage_info.refetch();
+        },
+        onError: (err) => console.log("error", err),
+        shouldResubscribe: false,
+    });
 
 
     if (all_stage_info.loading) return "Loading...";
@@ -279,7 +291,6 @@ export default function StagesPage() {
                 onClick={() => {
                     setCreateStageOpen(true);
                     setDialogOpen(true);
-                    get_stage_ref.refetch();
                 }}
             >
                 <Add />

@@ -8,14 +8,17 @@ import Box from '@mui/material/Box';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import { ButtonProps, CssBaseline, Paper, ThemeProvider, createTheme, useTheme } from '@mui/material';
 import { ThemeOptions } from '@mui/material/styles';
-import { HomeOutlined, ArrowBack, Menu, PeopleOutlined, SnippetFolderOutlined, HourglassBottomOutlined } from '@mui/icons-material';
+import { ArrowBack, Menu } from '@mui/icons-material';
 import { ROUTE_LIST } from '../constant';
 import Link from 'next/link';
 import Stack from '@mui/material/Stack';
-import { ApolloProvider, ApolloClient, InMemoryCache, gql } from "@apollo/client";
-import { SchemaLink } from '@apollo/client/link/schema';
+import { ApolloProvider, ApolloClient, InMemoryCache, HttpLink, split, ApolloLink } from "@apollo/client";
+import { ServerSentEventsLink } from '@graphql-sse/apollo-client';
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { createClient } from "graphql-ws";
 
 import { BLEStopplateService } from "@/ble_service";
+import { getMainDefinition } from '@apollo/client/utilities';
 
 
 const inter = Inter({ subsets: ['latin'] })
@@ -71,11 +74,36 @@ export const themeOptions: ThemeOptions = createTheme({
 
 
 
-const client = new ApolloClient({
+/* #region create Websocket link for subscription */
+const httpLink = new HttpLink({
 	uri: process.env.backendUrl,
-	cache: new InMemoryCache(),
 });
 
+// const sseLink = new ServerSentEventsLink({
+// 	graphQlSubscriptionUrl: process.env.backendUrl,
+// });
+const wsLink = new GraphQLWsLink(
+	createClient({
+		url: "ws://localhost:8080/graphql",
+	})
+);
+const splitLink = split(
+	({ query }) => {
+		const definition = getMainDefinition(query);
+		return (
+			definition.kind === 'OperationDefinition' &&
+			definition.operation === 'subscription'
+		);
+	},
+	wsLink,
+	httpLink
+);
+const client = new ApolloClient({
+	cache: new InMemoryCache(),
+	link: splitLink,
+})
+
+/* #endregion */
 
 export default function RootLayout({
 	children,
