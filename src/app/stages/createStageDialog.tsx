@@ -65,10 +65,29 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
         condition: 1,
     });
     const [stageStatics, setStageStatics] = React.useState({
-        stageType: 0,
+        stageType: "",
         minimumRounds: 0,
         maximumPoints: 0,
     });
+
+    React.useEffect(() => {
+        let min_rounds = formData.papers * 2 + formData.poppers;
+        let stage_type;
+        if (min_rounds <= 12) {
+            stage_type = "short";
+        } else if (min_rounds <= 24) {
+            stage_type = "medium";
+        } else if (min_rounds <= 32) {
+            stage_type = "long";
+        } else {
+            stage_type = "other";
+        }
+        setStageStatics({
+            minimumRounds: min_rounds,
+            maximumPoints: formData.papers * 2 * 5 + formData.poppers * 5,
+            stageType: stage_type,
+        })
+    }, [formData])
 
     function update_string_form_data(
         event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -104,6 +123,7 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
             },
             onCompleted(data, clientOptions) {
                 alert("Create Stage Succeed!")
+                props.onClose(null as unknown as React.MouseEvent<HTMLButtonElement, MouseEvent>);
             },
         })
     }
@@ -171,26 +191,6 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
                 </Grid>
                 <Grid item xs={6}>
                     <OutlinedInput
-                        error={isNaN(formData.noShoots)}
-                        required
-                        inputProps={{
-                            min: 0,
-                            step: 1,
-                            type: "number",
-                        }}
-                        fullWidth
-                        startAdornment={
-                            <InputAdornment position="start">
-                                No-shoots:
-                            </InputAdornment>
-                        }
-                        value={formData.noShoots}
-                        name="noShoots"
-                        onChange={update_int_form_data}
-                    />
-                </Grid>
-                <Grid item xs={6}>
-                    <OutlinedInput
                         error={isNaN(formData.poppers)}
                         required
                         inputProps={{
@@ -209,7 +209,27 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
                         onChange={update_int_form_data}
                     />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={12} sm={6}>
+                    <OutlinedInput
+                        error={isNaN(formData.noShoots)}
+                        required
+                        inputProps={{
+                            min: 0,
+                            step: 1,
+                            type: "number",
+                        }}
+                        fullWidth
+                        startAdornment={
+                            <InputAdornment position="start">
+                                No-shoots:
+                            </InputAdornment>
+                        }
+                        value={formData.noShoots}
+                        name="noShoots"
+                        onChange={update_int_form_data}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={6}>
                     <FormControl fullWidth>
                         <InputLabel>Condition</InputLabel>
                         <Select
