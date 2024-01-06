@@ -1,10 +1,15 @@
 "use client";
-import { Query, Stages } from "@/gql_dto";
-import { useQuery, gql } from "@apollo/client";
+import { Query, Stage, Subscription } from "@/gql_dto";
+import { ApolloProvider, ApolloClient, InMemoryCache, gql, ApolloLink, concat, HttpLink, useMutation, useSubscription, useQuery } from "@apollo/client";
 import {
+    Backdrop,
     Box,
     Button,
+    Dialog,
+    Divider,
+    Fab,
     Grid,
+    Grow,
     IconButton,
     Paper,
     Stack,
@@ -15,6 +20,7 @@ import React from "react";
 import {
     DataGrid,
     GridCallbackDetails,
+    GridCellCheckboxForwardRef,
     GridCellParams,
     GridColDef,
     GridToolbar,
@@ -22,8 +28,15 @@ import {
     zhTW,
 } from "@mui/x-data-grid";
 import { useDemoData } from "@mui/x-data-grid-generator";
-import { Lock, Delete, Edit } from "@mui/icons-material";
-const FILMS_QUERY = gql`
+import { Lock, Delete, Edit, Add } from "@mui/icons-material";
+import StageInfoDialog from "./stageInfoDialog";
+import CreateStageDialog from "./createStageDialog";
+
+import { createClient } from "graphql-ws";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+
+
+const GET_ALL_STAGES_QUERY = gql`
     query GetAllStages {
         getAllStages {
             id
@@ -35,9 +48,70 @@ const FILMS_QUERY = gql`
             popperTargets
             minimumRounds
             maximumPoints
+            isLocked
+            type
+            condition
         }
     }
 `;
+const STAGE_UPDATE_SUBSCRIPTION = gql`
+    subscription SubscribeToStageUpdate{
+        subscribeToStageUpdate
+    }
+`;
+
+const DELETE_STAGE_MUTATION = gql`
+    mutation DeleteStage($ID: Int!) {
+        deleteStage(id: $ID) {
+            id
+        }
+    }
+`;
+
+const LOCK_STAGE_MUTATION = gql`
+    mutation LockStage($ID: Int!) {
+        lockStage(id: $ID) {
+            id
+        }
+    }
+`;
+
+interface ActionButtonProps { row: Stage }
+const DeleteActionButton = (props: ActionButtonProps) => {
+    const [delete_stage, delete_stage_info] = useMutation(DELETE_STAGE_MUTATION);
+
+    return <IconButton disabled={props.row.isLocked} onClick={() => {
+        if (!confirm(`Are you sure you want to delete ${props.row.name}?`))
+            return;
+
+        delete_stage({
+            variables: { ID: props.row.id }
+        });
+    }}>
+        <Delete />
+    </IconButton>
+}
+const LockActionButton = (props: ActionButtonProps) => {
+    const [lock_stage, lock_stage_info] = useMutation(LOCK_STAGE_MUTATION);
+
+    return <IconButton disabled={props.row.isLocked} onClick={() => {
+        if (!confirm(`Are you sure you want to lock ${props.row.name}?`))
+            return;
+
+        lock_stage({
+            variables: { ID: props.row.id }
+        });
+    }}>
+        <Lock />
+    </IconButton>
+}
+const EditActionButton = (props: ActionButtonProps) => {
+    return <IconButton disabled={props.row.isLocked} onClick={() => {
+
+    }}>
+        <Edit />
+    </IconButton>
+}
 
 const columns: GridColDef[] = [
     {
@@ -49,7 +123,6 @@ const columns: GridColDef[] = [
         align: "center",
         // width: 1,
         flex: 0.01,
-        pinnable: true,
     },
     {
         field: "Name",
@@ -58,7 +131,6 @@ const columns: GridColDef[] = [
         },
         minWidth: 200,
         flex: 1,
-        resizable: true,
     },
     {
         field: "Created at",
@@ -68,6 +140,27 @@ const columns: GridColDef[] = [
         type: "dateTime",
         minWidth: 170,
         flex: 0.2,
+    },
+    {
+        field: "Type",
+        valueGetter: (params) => {
+            let capitalized =
+                params.row.type.charAt(0).toUpperCase()
+                + params.row.type.slice(1)
+            return capitalized;
+        },
+        type: "string",
+        minWidth: 80,
+        flex: 0.1,
+    },
+    {
+        field: "Condition",
+        valueGetter: (params) => {
+            return "Condition " + params.row.condition;
+        },
+        type: "string",
+        minWidth: 120,
+        flex: 0.1,
     },
     {
         field: "Papers",
@@ -107,39 +200,54 @@ const columns: GridColDef[] = [
         headerName: "Actions",
         width: 150,
         cellClassName: "actions",
-        getActions: ({ id }) => {
+        getActions: ({ id, row }) => {
             return [
-                <IconButton>
-                    <Delete />
-                </IconButton>,
-                <IconButton>
-                    <Lock />
-                </IconButton>,
-                <IconButton>
-                    <Edit />
-                </IconButton>,
+                <DeleteActionButton row={row} />,
+                <LockActionButton row={row} />,
+                <EditActionButton row={row} />,
             ];
         },
     },
 ];
-export default function StagesPage() {
-    const { data, loading, error } = useQuery<Query>(FILMS_QUERY);
 
-    if (loading) return "Loading...";
-    if (error) return <pre>{error.message}</pre>;
-    if (!data) return <pre>no data</pre>;
+var inited = false;
+export default function StagesPage() {
+    const [stageInfoOpen, setStageInfoOpen] = React.useState(false);
+    const [createStageOpen, setCreateStageOpen] = React.useState(false);
+    const [dialogOpen, setDialogOpen] = React.useState(false);
+    const [stageInfoId, setStageInfoId] = React.useState(0);
+
+    const all_stage_info = useQuery<Query>(GET_ALL_STAGES_QUERY);
+    const stage_update_subscription = useSubscription<Subscription>(STAGE_UPDATE_SUBSCRIPTION, {
+        onData({data}) {
+            console.log(data.data?.subscribeToStageUpdate)
+            all_stage_info.refetch();
+        },
+        onError: (err) => console.log("error", err),
+        shouldResubscribe: false,
+    });
+
+
+    if (all_stage_info.loading) return "Loading...";
+    if (all_stage_info.error) return <pre>{all_stage_info.error.message}</pre>;
+    if (!all_stage_info.data) return <pre>no data</pre>;
+
+    function close_all_windows() {
+        setStageInfoOpen(false);
+        setCreateStageOpen(false);
+    }
+
     return (
         <>
             <Stack>
-                <Typography variant="h5">Stages managemant</Typography>
-                {/* {JSON.stringify(data.getAllStages[0])} */}
+                <Typography sx={{ marginBottom: 2 }} variant="h5">Stages managemant</Typography>
                 <Box sx={{ height: "100%", width: "100%" }}>
                     <DataGrid
                         localeText={
                             zhTW.components.MuiDataGrid.defaultProps.localeText
                         }
                         columns={columns}
-                        rows={data.getAllStages}
+                        rows={all_stage_info.data.getAllStages}
                         slots={{
                             toolbar: GridToolbar,
                         }}
@@ -148,11 +256,45 @@ export default function StagesPage() {
                             event: MuiEvent<React.MouseEvent<HTMLElement>>,
                             detail: GridCallbackDetails
                         ) => {
+                            if (params.field == "actions")
+                                return
                             console.log(params, event, detail);
+                            setStageInfoId(params.row.id)
+                            setStageInfoOpen(true);
+                            setDialogOpen(true);
                         }}
                     />
                 </Box>
             </Stack>
+            <Dialog
+                sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={dialogOpen}
+                onClose={() => {
+                    setDialogOpen(false);
+                    close_all_windows();
+                }}
+                fullWidth
+                maxWidth={"md"}
+            >
+                {stageInfoOpen ? <StageInfoDialog stage_id={stageInfoId} /> : <></>}
+                {createStageOpen ? <CreateStageDialog onClose={() => {
+                    setDialogOpen(false);
+                    close_all_windows();
+                }} /> : <></>}
+            </Dialog>
+            <Fab sx={{
+                position: 'absolute',
+                bottom: 50,
+                right: 50,
+            }}
+                color="primary"
+                onClick={() => {
+                    setCreateStageOpen(true);
+                    setDialogOpen(true);
+                }}
+            >
+                <Add />
+            </Fab>
         </>
     );
 }
