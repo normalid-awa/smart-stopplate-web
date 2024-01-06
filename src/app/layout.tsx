@@ -84,7 +84,7 @@ const httpLink = new HttpLink({
 // });
 const wsLink = new GraphQLWsLink(
 	createClient({
-		url: process.env.wsBackendUrl,
+		url: process.env.wsBackendUrl as string,
 	})
 );
 const splitLink = split(
