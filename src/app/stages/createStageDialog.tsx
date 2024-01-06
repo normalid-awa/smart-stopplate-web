@@ -17,6 +17,7 @@ import {
     styled,
 } from "@mui/material";
 import React from "react";
+import { Stage } from "@/gql_dto";
 
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === "dark" ? "#1A2027" : "#fff",
@@ -28,6 +29,7 @@ const Item = styled(Paper)(({ theme }) => ({
 
 interface CreateStageDialogProps {
     onClose: React.MouseEventHandler<HTMLButtonElement> | (() => void);
+    editStage?: Stage;
 }
 
 const CREATE_STAGE_MUTATION = gql`
@@ -52,8 +54,49 @@ const CREATE_STAGE_MUTATION = gql`
     }
 `;
 
+const UPDATE_STAGE_MUTATION = gql`
+    mutation UpdateStage(
+        $id: Int!
+        $name: String!
+        $description: String!
+        $paperTargets: Int!
+        $noShoots: Int!
+        $popperTargets: Int!
+        $condition: Int!
+    ) {
+        updateStage(
+            id: $id
+            name: $name
+            description: $description
+            paperTargets: $paperTargets
+            noShoots: $noShoots
+            popperTargets: $popperTargets
+            condition: $condition
+        ) {
+            condition
+            createdAt
+            description
+            id
+            isLocked
+            maximumPoints
+            minimumRounds
+            name
+            noShoots
+            paperTargets
+            popperTargets
+            type
+        }
+    }
+`;
+
+
 export default function CreateStageDialog(props: CreateStageDialogProps) {
-    const [create_stage, create_stage_info] = useMutation(CREATE_STAGE_MUTATION);
+    const [create_stage, create_stage_info] = useMutation(
+        CREATE_STAGE_MUTATION
+    );
+    const [update_stage, update_stage_info] = useMutation(
+        UPDATE_STAGE_MUTATION
+    );
     const [isFormComplete, setIsFormComplete] = React.useState(false);
 
     const [formData, setFormData] = React.useState({
@@ -86,8 +129,20 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
             minimumRounds: min_rounds,
             maximumPoints: formData.papers * 2 * 5 + formData.poppers * 5,
             stageType: stage_type,
-        })
-    }, [formData])
+        });
+    }, [formData]);
+    React.useEffect(() => {
+        if (props.editStage) {
+            setFormData({
+                condition: props.editStage.condition,
+                description: props.editStage.description,
+                papers: props.editStage.paperTargets,
+                noShoots: props.editStage.noShoots,
+                poppers: props.editStage.popperTargets,
+                name: props.editStage.name,
+            });
+        }
+    }, []);
 
     function update_string_form_data(
         event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -106,8 +161,7 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
     }
 
     function submit_form() {
-        if (cheack_form_complete())
-            return;
+        if (cheack_form_complete()) return;
         create_stage({
             variables: {
                 name: formData.name,
@@ -118,27 +172,61 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
                 condition: formData.condition,
             },
             onError(error, clientOptions) {
-                alert("Create Stage Error!")
-                alert("Log: " + JSON.stringify(error))
+                alert("Create Stage Error!");
+                alert("Log: " + JSON.stringify(error));
             },
             onCompleted(data, clientOptions) {
-                alert("Create Stage Succeed!")
-                props.onClose(null as unknown as React.MouseEvent<HTMLButtonElement, MouseEvent>);
+                alert("Create Stage Succeed!");
+                props.onClose(
+                    null as unknown as React.MouseEvent<
+                        HTMLButtonElement,
+                        MouseEvent
+                    >
+                );
             },
-        })
+        });
+    }
+    function apply_change() {
+        if (cheack_form_complete()) return;
+        update_stage({
+            variables: {
+                id: props.editStage?.id,
+                name: formData.name,
+                description: formData.description,
+                noShoots: formData.noShoots,
+                paperTargets: formData.papers,
+                popperTargets: formData.poppers,
+                condition: formData.condition,
+            },
+            onError(error, clientOptions) {
+                alert("Update Stage Error!");
+                alert("Error code: " + JSON.stringify(error));
+            },
+            onCompleted(data, clientOptions) {
+                alert("Update Stage Succeed!");
+                props.onClose(
+                    null as unknown as React.MouseEvent<
+                        HTMLButtonElement,
+                        MouseEvent
+                    >
+                );
+            },
+        });
     }
 
     function cheack_form_complete() {
-        return (formData.name == "" ||
+        return (
+            formData.name == "" ||
             formData.description == "" ||
             isNaN(formData.papers) ||
             isNaN(formData.noShoots) ||
-            isNaN(formData.poppers))
+            isNaN(formData.poppers)
+        );
     }
 
     React.useEffect(() => {
         setIsFormComplete(cheack_form_complete());
-    }, [formData])
+    }, [formData]);
 
     return (
         <>
@@ -264,9 +352,26 @@ export default function CreateStageDialog(props: CreateStageDialogProps) {
                     </Button>
                 </Grid>
                 <Grid item xs={6}>
-                    <Button fullWidth variant="contained" color="success" onClick={submit_form} disabled={isFormComplete}>
-                        Confirm
-                    </Button>
+                    {props.editStage ? (
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            color="success"
+                            onClick={apply_change}
+                            disabled={isFormComplete}
+                        >
+                            Apply Change
+                        </Button>
+                    ) : (
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            onClick={submit_form}
+                            disabled={isFormComplete}
+                        >
+                            Confirm
+                        </Button>
+                    )}
                 </Grid>
             </Grid>
         </>
