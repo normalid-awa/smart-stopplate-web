@@ -31,7 +31,7 @@ export const ROUTE_LIST: IRouteList[] = [
     },
     {
         display_name: "Shooters",
-        dir: "/",
+        dir: "/shooters",
         show_on_sidebar: true,
         icon: PeopleOutlined,
     },
