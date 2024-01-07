@@ -158,8 +158,8 @@ export default function StagesPage() {
             field: "Type",
             valueGetter: (params) => {
                 let capitalized =
-                    params.row.type.charAt(0).toUpperCase()
-                    + params.row.type.slice(1)
+                    params.row.type.charAt(0)
+                    + params.row.type.slice(1).toLowerCase()
                 return capitalized;
             },
             type: "string",
