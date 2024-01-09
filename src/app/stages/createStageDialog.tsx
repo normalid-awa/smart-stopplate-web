@@ -73,18 +73,7 @@ const UPDATE_STAGE_MUTATION = gql`
             popperTargets: $popperTargets
             condition: $condition
         ) {
-            condition
-            createdAt
-            description
             id
-            isLocked
-            maximumPoints
-            minimumRounds
-            name
-            noShoots
-            paperTargets
-            popperTargets
-            type
         }
     }
 `;
