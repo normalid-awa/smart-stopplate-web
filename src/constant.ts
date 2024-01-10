@@ -18,6 +18,7 @@ interface IRouteList {
 export enum EROUTE_LIST {
     Home,
     Scoreboards,
+    Scorelists,
     Shooters,
     Stages,
     Timer,
@@ -35,6 +36,12 @@ export const ROUTE_LIST: IRouteList[] = [
         display_name: "Scoreboards",
         dir: "/scoreboards",
         show_on_sidebar: true,
+        icon: SportsScoreOutlined,
+    },
+    {
+        display_name: "Scorelists",
+        dir: "/scorelists",
+        show_on_sidebar: false,
         icon: SportsScoreOutlined,
     },
     {
@@ -68,3 +75,5 @@ export const ROUTE_LIST: IRouteList[] = [
         icon: Settings,
     },
 ];
+
+export const __DEV__ = true;

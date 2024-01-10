@@ -57,14 +57,13 @@ export default function ScoreboardsPage() {
         <>
             <Stack gap={2} divider={<Divider />}>
                 {all_scoreboards.data.getAllScoreboards.map((v) => (
-                    <CardActionArea key={v.id} onClick={() => {
-                        router.push(`${ROUTE_LIST[EROUTE_LIST.Scoreboards].dir}/${v.id}`);
-                    }}>
-                        <Card elevation={10} sx={{ padding: 1 }}>
-                            <Grid container alignItems={"center"}>
-                                <Grid item xs={8} md={11}>
-
-                                    <Grid container spacing={2} alignItems={"center"}>
+                    <Card elevation={10} key={v.id} >
+                        <Grid container alignItems={"center"}>
+                            <Grid item xs={8} md={11}>
+                                <CardActionArea onClick={() => {
+                                    router.push(`${ROUTE_LIST[EROUTE_LIST.Scoreboards].dir}/${v.id}`);
+                                }}>
+                                    <Grid sx={{ padding: 1 }} container spacing={2} alignItems={"center"}>
                                         <Grid item xs={12}>
                                             <Typography
                                                 variant="h4"
@@ -91,36 +90,38 @@ export default function ScoreboardsPage() {
                                             </Typography>
                                         </Grid>
                                     </Grid>
-                                </Grid>
-                                <Grid item xs={4} md={1}>
-                                    <Button
-                                        variant="contained"
-                                        color="error"
-                                        fullWidth
-                                        disabled={v.isLocked}
-                                        onClick={() => {
-                                            if (!confirm("Are you sure you want to lock this scoreboard? after locked the score inside of this scoreboar will be IMMUTABLE ! "))
-                                                return
-                                            if (prompt(`Type this scoreboard (${v.name}) to process the lock action`) === v.name) {
-                                                lock_scoreboard({
-                                                    variables: {
-                                                        id: v.id
-                                                    }
-                                                });
-                                                return
-                                            } else {
-                                                alert("Wrong name")
-                                            }
-                                        }}
-                                    >
-                                        Lock
-                                    </Button>
-                                </Grid>
+                                </CardActionArea>
+
                             </Grid>
-                        </Card>
-                    </CardActionArea>
+                            <Grid item xs={4} md={1}>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    fullWidth
+                                    disabled={v.isLocked}
+                                    sx={{ height: 100 }}
+                                    onClick={() => {
+                                        if (!confirm("Are you sure you want to lock this scoreboard? after locked the score inside of this scoreboar will be IMMUTABLE ! "))
+                                            return
+                                        if (prompt(`Type this scoreboard (${v.name}) to process the lock action`) === v.name) {
+                                            lock_scoreboard({
+                                                variables: {
+                                                    id: v.id
+                                                }
+                                            });
+                                            return
+                                        } else {
+                                            alert("Wrong name")
+                                        }
+                                    }}
+                                >
+                                    Lock
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </Card>
                 ))}
-            </Stack>
+            </Stack >
         </>
     );
 }

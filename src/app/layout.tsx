@@ -9,13 +9,14 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import { ButtonProps, CssBaseline, Paper, ThemeProvider, createTheme, useTheme } from '@mui/material';
 import { ThemeOptions } from '@mui/material/styles';
 import { ArrowBack, Menu } from '@mui/icons-material';
-import { ROUTE_LIST } from '../constant';
+import { ROUTE_LIST, __DEV__ } from '../constant';
 import Link from 'next/link';
 import Stack from '@mui/material/Stack';
 import { ApolloProvider, ApolloClient, InMemoryCache, HttpLink, split, ApolloLink } from "@apollo/client";
 import { ServerSentEventsLink } from '@graphql-sse/apollo-client';
 import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { createClient } from "graphql-ws";
+import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
 
 import { BLEStopplateService } from "@/ble_service";
 import { getMainDefinition } from '@apollo/client/utilities';
@@ -102,6 +103,11 @@ const client = new ApolloClient({
 	cache: new InMemoryCache(),
 	link: splitLink,
 })
+
+if (__DEV__) {  // Adds messages only in a dev environment
+	loadDevMessages();
+	loadErrorMessages();
+}
 
 /* #endregion */
 
