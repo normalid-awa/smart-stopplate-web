@@ -22,6 +22,7 @@ const GET_SCOREBOARD_QUREY = gql`
             name
             scorelists {
                 isLocked
+                id
                 createdAt
                 stage {
                     id
@@ -56,14 +57,14 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
         <>
             <Stack gap={2} divider={<Divider />}>
                 <h1>Scoreboard: {scoreboard.data.getScoreboard.name}</h1>
-                {scoreboard.data.getScoreboard.scorelists.map((v) => (
-                    <Card elevation={10} key={v.id}>
+                {scoreboard.data.getScoreboard.scorelists.map((v,i) => (
+                    <Card elevation={10} key={i}>
                         <Grid container alignItems={"center"}>
                             <Grid item xs={8} md={11}>
                                 <CardActionArea
                                     onClick={() => {
                                         router.push(
-                                            `${ROUTE_LIST[EROUTE_LIST.Scorelists].dir}/${v.stage.id}`
+                                            `${ROUTE_LIST[EROUTE_LIST.Scorelists].dir}/${v.id}`
                                         );
                                     }}
                                 >
