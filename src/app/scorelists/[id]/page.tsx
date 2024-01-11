@@ -1,10 +1,10 @@
 "use client"
 import { gql, useQuery } from "@apollo/client";
-import { Card, Divider, Grid, IconButton, PaperProps, Stack, Typography, TypographyProps, styled, useTheme } from "@mui/material";
+import { Box, Card, Divider, Grid, IconButton, PaperProps, SpeedDial, SpeedDialAction, SpeedDialIcon, Stack, Typography, TypographyProps, styled, useTheme } from "@mui/material";
 import { Query, Score } from "@/gql_dto";
 import React from "react";
 import { DataGrid, GridColDef, GridValueGetterParams, useGridApiRef } from '@mui/x-data-grid';
-import { Delete, Edit } from "@mui/icons-material";
+import { Delete, Edit, PeopleOutlined, PersonAdd, Queue } from "@mui/icons-material";
 
 
 const GET_SCORELIST_QUERY = gql`
@@ -37,7 +37,17 @@ const GET_SCORELIST_QUERY = gql`
         }
     }
 `
-
+const StyledSpeedDial = styled(SpeedDial)(({ theme }) => ({
+    position: 'absolute',
+    '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
+        bottom: theme.spacing(2),
+        right: theme.spacing(2),
+    },
+    '&.MuiSpeedDial-directionDown, &.MuiSpeedDial-directionRight': {
+        top: theme.spacing(2),
+        left: theme.spacing(2),
+    },
+}));
 
 export default function ScorelistPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
@@ -196,7 +206,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
     return (
         <>
             <Stack divider={<Divider />} gap={2}>
-                <h1>You are currently scoring stage: {scorelist.data.getScorelist.stage.name}</h1>
+                <h5>You are currently scoring stage: {scorelist.data.getScorelist.stage.name}</h5>
                 <DataGrid
                     rows={scorelist.data.getScorelist.scores}
                     columns={columns}
@@ -211,6 +221,22 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     disableRowSelectionOnClick
                 />
             </Stack >
+            <StyledSpeedDial
+                ariaLabel="SpeedDial playground example"
+                icon={<SpeedDialIcon />}
+                direction={"up"}
+            >
+                <SpeedDialAction
+                    icon={<PersonAdd />}
+                    tooltipOpen
+                    tooltipTitle={"Add shooter"}
+                />
+                <SpeedDialAction
+                    icon={<Queue />}
+                    tooltipOpen
+                    tooltipTitle={"Add rounds"}
+                />
+            </StyledSpeedDial>
         </>
     )
 }
