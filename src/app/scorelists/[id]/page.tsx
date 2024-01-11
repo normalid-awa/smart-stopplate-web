@@ -1,5 +1,5 @@
 "use client"
-import { gql, useQuery } from "@apollo/client";
+import { gql, useQuery, useSubscription } from "@apollo/client";
 import { Box, Button, Card, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, FormControl, Grid, IconButton, InputLabel, MenuItem, PaperProps, Select, SpeedDial, SpeedDialAction, SpeedDialIcon, Stack, Typography, TypographyProps, styled, useTheme } from "@mui/material";
 import { Query, Score } from "@/gql_dto";
 import React from "react";
@@ -38,6 +38,12 @@ const GET_SCORELIST_QUERY = gql`
     }
 `
 
+const SUBSCRIBE_TO_SCORE_UPDATE = gql`
+    subscription {
+        subscribeToScoreUpdate
+    }
+`
+
 const StyledSpeedDial = styled(SpeedDial)(({ theme }) => ({
     position: 'absolute',
     '&.MuiSpeedDial-directionUp, &.MuiSpeedDial-directionLeft': {
@@ -53,6 +59,11 @@ const StyledSpeedDial = styled(SpeedDial)(({ theme }) => ({
 export default function ScorelistPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
     const scorelist = useQuery<Query>(GET_SCORELIST_QUERY, { variables: { id } });
+    const _ = useSubscription<Query>(SUBSCRIBE_TO_SCORE_UPDATE, {
+        onData(options) {
+            scorelist.refetch()
+        },
+    });
 
 
 
