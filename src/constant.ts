@@ -19,6 +19,7 @@ export enum EROUTE_LIST {
     Home,
     Scoreboards,
     Scorelists,
+    Scores,
     Shooters,
     Stages,
     Timer,
@@ -41,6 +42,12 @@ export const ROUTE_LIST: IRouteList[] = [
     {
         display_name: "Scorelists",
         dir: "/scorelists",
+        show_on_sidebar: false,
+        icon: SportsScoreOutlined,
+    },
+    {
+        display_name: "Scores",
+        dir: "/scores",
         show_on_sidebar: false,
         icon: SportsScoreOutlined,
     },
