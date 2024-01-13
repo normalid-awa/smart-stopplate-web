@@ -5,12 +5,14 @@ import {
     Card,
     CardActionArea,
     Dialog,
+    DialogTitle,
     Divider,
     Fab,
     Grid,
     Paper,
     PaperProps,
     Stack,
+    TextField,
     Typography,
     styled,
 } from "@mui/material";
@@ -42,11 +44,19 @@ const SUBSCRIBE_TO_SCOREBOARD_UPDATE_MUTATION = gql`
         subscribeToScoreboardUpdate
     }
 `;
+const CREATE_SCOREBOARD_MUTATION = gql`
+    mutation CreateScoreboard($name: String!) {
+        createScoreboard(name: $name){
+            id
+        }
+    }
+`;
 
 export default function ScoreboardsPage() {
     const router = useRouter();
     const all_scoreboards = useQuery<Query>(GET_ALL_SCOREBOARDS_QUERY);
     const [lock_scoreboard, lock_scoreboard_info] = useMutation<Mutation>(LOCK_SCOREBOARD_MUTATION);
+    const [create_scoreboard, create_scoreboard_info] = useMutation<Mutation>(CREATE_SCOREBOARD_MUTATION);
     const _ = useSubscription(SUBSCRIBE_TO_SCOREBOARD_UPDATE_MUTATION, {
         onData(options) {
             all_scoreboards.refetch();
@@ -54,7 +64,6 @@ export default function ScoreboardsPage() {
     });
     
 
-    const [dialogOpen, setDialogOpen] = React.useState(false);
     if (all_scoreboards.loading) return <pre>Loading...</pre>;
     if (all_scoreboards.error)
         return <pre>ERROR: {JSON.stringify(all_scoreboards.error)}</pre>;
@@ -136,14 +145,19 @@ export default function ScoreboardsPage() {
                 }}
                 color="primary"
                 onClick={() => {
-                    setDialogOpen(true);
+                    var i = prompt("Type new scoreboard's name")
+                    if (i) {
+                        create_scoreboard({
+                            variables: {
+                                name: i
+                        }, onError(error, clientOptions) {
+                            alert("Fail to process action")
+                        },})
+                    }
                 }}
             >
                 <Add />
             </Fab>
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-                
-            </Dialog>
         </>
     );
 }

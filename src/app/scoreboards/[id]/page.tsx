@@ -5,13 +5,26 @@ import {
     Button,
     Card,
     CardActionArea,
+    Dialog,
+    DialogActions,
+    DialogContentText,
+    DialogTitle,
     Divider,
+    Fab,
+    FormControl,
+    FormControlLabel,
+    FormLabel,
     Grid,
+    InputLabel,
+    MenuItem,
+    Select,
     Stack,
     Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
+import { Add } from "@mui/icons-material";
+import React from "react";
 
 const GET_SCOREBOARD_QUREY = gql`
     query GetScoreboard($id: Int!) {
@@ -44,6 +57,27 @@ const SUBSCRIBE_TO_SCORELIST_UPDATE_SUBSCRIPTION = gql`
         subscribeToScorelistUpdate
     }
 `;
+const CREATE_SCORELIST_MUTATION = gql`
+    mutation CreateScorelist($stageId:Int!,$scoreboardId: Int!){
+        createScorelist(
+            stageId:$stageId
+            scoreboardId:$scoreboardId
+        ) {
+            createdAt
+            id
+            isLocked
+        }
+    }
+`;
+
+const GET_ALL_STAGE_QUERY = gql`
+    query {
+        getAllStages {
+            id
+            name
+        }
+    }
+`
 
 export default function ScoreboardPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
@@ -51,12 +85,18 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
     const scoreboard = useQuery<Query>(GET_SCOREBOARD_QUREY, {
         variables: { id: id },
     });
-    const [lock_scorelist, _] = useMutation(LOCK_SCORELIST_MUTATION);
+    const all_stage = useQuery<Query>(GET_ALL_STAGE_QUERY)
+    const [lock_scorelist] = useMutation(LOCK_SCORELIST_MUTATION);
+    const [create_scorelist] = useMutation(CREATE_SCORELIST_MUTATION);
     useSubscription(SUBSCRIBE_TO_SCORELIST_UPDATE_SUBSCRIPTION, {
         onData(options) {
             scoreboard.refetch()
         },
     });
+
+    const [selectedStage, setSelectedStage] = React.useState(0);
+
+    const [dialogOpen, setDialogOpen] = React.useState(false);
 
     if (scoreboard.loading) return <pre>Loading...</pre>;
     if (scoreboard.error)
@@ -154,6 +194,45 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
                     </Card>
                 ))}
             </Stack >
+            <Fab
+                sx={{
+                    position: "absolute",
+                    bottom: 50,
+                    right: 50,
+                }}
+                color="primary"
+                onClick={() => setDialogOpen(true)}
+            >
+                <Add />
+            </Fab>
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+                <DialogTitle>Add Scorelists</DialogTitle>
+                <DialogContentText>
+                    <FormControl fullWidth>
+                        <InputLabel children="Stage" />
+                        <Select label={"Stage"} value={selectedStage} onChange={(v) => setSelectedStage(v.target.value as number)}>
+                            {all_stage.data?.getAllStages.map((v, i) =>
+                                <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
+                            )}
+                        </Select>
+                    </FormControl>
+                </DialogContentText>
+                <DialogActions>
+                    <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={() => {
+                        create_scorelist({
+                            variables: {
+                                stageId: selectedStage,
+                                scoreboardId: id,
+                            },
+                            onError(error, clientOptions) {
+                                alert("Fail to process")
+                            },
+                        })
+                        setDialogOpen(false);
+                    }}>Add</Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }
