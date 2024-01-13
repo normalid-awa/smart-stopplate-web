@@ -32,10 +32,10 @@ const inter = Inter({ subsets: ['latin'] })
 
 const MenuButton = (props: ButtonProps) => {
 	return <Button style={{
-			height: "3rem",
-			justifyContent: "right",
-			width: "100%",
-		}} {...props} />
+		height: "3rem",
+		justifyContent: "right",
+		width: "100%",
+	}} {...props} />
 }
 export const themeOptions: ThemeOptions = createTheme({
 	palette: {
@@ -87,29 +87,6 @@ if (__DEV__) {  // Adds messages only in a dev environment
 
 /* #endregion */
 
-interface Props {
-	/**
-	 * Injected by the documentation to work in an iframe.
-	 * You won't need it on your project.
-	 */
-	children: React.ReactElement;
-}
-function HideOnScroll(props: Props) {
-	const { children } = props;
-	// Note that you normally won't need to set the window ref as useScrollTrigger
-	// will default to window.
-	// This is only being set here because the demo is in an iframe.
-	const trigger = useScrollTrigger({
-		target: window,
-	});
-
-	return (
-		<Slide appear={false} direction="down" in={!trigger}>
-			{children}
-		</Slide>
-	);
-}
-
 export default function RootLayout({
 	children,
 }: {
@@ -128,48 +105,42 @@ export default function RootLayout({
 				<ThemeProvider theme={themeOptions}>
 					<CssBaseline />
 					<ApolloProvider client={client}>
-						<HideOnScroll>
-							<AppBar position="static">
-								<Toolbar>
-									<IconButton
-										size="large"
-										edge="start"
-										color="inherit"
-										aria-label="menu"
-										sx={{ mr: 2 }}
-										onClick={() => setOpen(true)}
-									>
-										<Menu />
-									</IconButton>
-									<Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-										Smart IPSC Training System
-									</Typography>
-								</Toolbar>
-							</AppBar>
-						</HideOnScroll>
-						<nav>
-							<Drawer
-								variant="temporary"
-								open={open}
-								onClose={() => setOpen(false)}
-								ModalProps={{
-									keepMounted: true, // Better open performance on mobile.
-								}}
-								sx={{
-									display: { xs: 'block', sm: 'none' },
-									'& .MuiDrawer-paper': { boxSizing: 'border-box', width: "40vw" },
-								}}
-							>
-								<Paper elevation={10} style={{ height: "100vh" }}>
-									<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
-										<MenuButton variant='contained' endIcon={open ? <ArrowBack /> : <Menu />} onClick={() => setOpen(!open)}>Collapse</MenuButton>
-										{ROUTE_LIST.map((v, i) => v.show_on_sidebar ? <Link key={i} href={`${v.dir}`}><MenuButton variant='outlined' endIcon={<v.icon />}>
-											{v.display_name}
-										</MenuButton></Link> : null)}
-									</ButtonGroup>
-								</Paper>
-							</Drawer>
-						</nav>
+						<AppBar position="static">
+							<Toolbar>
+								<IconButton
+									size="large"
+									edge="start"
+									color="inherit"
+									aria-label="menu"
+									sx={{ mr: 2 }}
+									onClick={() => setOpen(true)}
+								>
+									<Menu />
+								</IconButton>
+								<Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+									Smart IPSC Training System
+								</Typography>
+							</Toolbar>
+						</AppBar>
+						<Drawer
+							variant="temporary"
+							open={open}
+							onClose={() => setOpen(false)}
+							ModalProps={{
+								keepMounted: true, // Better open performance on mobile.
+							}}
+							sx={{
+								display: { xs: 'block', sm: 'none' },
+								'& .MuiDrawer-paper': { boxSizing: 'border-box', width: "50vw" },
+							}}
+						>
+							<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
+								<MenuButton variant='contained' endIcon={open ? <ArrowBack /> : <Menu />} onClick={() => setOpen(!open)}>Collapse</MenuButton>
+								{ROUTE_LIST.map((v, i) => v.show_on_sidebar ? <Link key={i} href={`${v.dir}`}><MenuButton variant='outlined' endIcon={<v.icon />}>
+									{v.display_name}
+								</MenuButton></Link> : null)}
+							</ButtonGroup>
+						</Drawer>
 						<Paper>
 							<Stack direction={"row"}>
 								{/* <SideDrawer /> */}
