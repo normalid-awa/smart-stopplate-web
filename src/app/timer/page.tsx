@@ -48,8 +48,10 @@ interface HitHistory {
 
 var GLOBAL_CALLBACK_ID: HitCallbackID;
 
-interface TimerProps {
-    onAssign?: (final_time: number) => void;
+
+type onAssign = (final_time: number) => void;
+export interface TimerProps {
+    onAssign?: onAssign | never;
 }
 
 export default function TimerPage(props: TimerProps) {
