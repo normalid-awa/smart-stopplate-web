@@ -4,6 +4,7 @@ import {
     PeopleOutlined,
     Settings,
     SnippetFolderOutlined,
+    SportsScoreOutlined,
     SvgIconComponent,
 } from "@mui/icons-material";
 
@@ -16,6 +17,9 @@ interface IRouteList {
 
 export enum EROUTE_LIST {
     Home,
+    Scoreboards,
+    Scorelists,
+    Scores,
     Shooters,
     Stages,
     Timer,
@@ -28,6 +32,24 @@ export const ROUTE_LIST: IRouteList[] = [
         dir: "/",
         show_on_sidebar: true,
         icon: HomeOutlined,
+    },
+    {
+        display_name: "Scoreboards",
+        dir: "/scoreboards",
+        show_on_sidebar: true,
+        icon: SportsScoreOutlined,
+    },
+    {
+        display_name: "Scorelists",
+        dir: "/scorelists",
+        show_on_sidebar: false,
+        icon: SportsScoreOutlined,
+    },
+    {
+        display_name: "Scores",
+        dir: "/scores",
+        show_on_sidebar: false,
+        icon: SportsScoreOutlined,
     },
     {
         display_name: "Shooters",
@@ -60,3 +82,5 @@ export const ROUTE_LIST: IRouteList[] = [
         icon: Settings,
     },
 ];
+
+export const __DEV__ = true;

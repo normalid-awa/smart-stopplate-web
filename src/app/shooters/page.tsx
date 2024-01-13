@@ -29,10 +29,7 @@ const GET_ALL_SHOOTERS_QUERY = gql`
 const DELETE_SHOOTER_MUTATION = gql`
     mutation DeleteShooter($id:Int!) {
         deleteShooter(id:$id) {
-            createdAt
-            division
             id
-            name
         }
     }
 `;
