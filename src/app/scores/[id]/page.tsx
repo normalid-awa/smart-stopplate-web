@@ -341,7 +341,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     }}
                                 />
                                 <Stack>
-                                    <IconButton onClick={() => setPopper(popper + (popper < score.data?.getScore.scorelist.stage.popperTargets ? 1 : 0))}>
+                                    <IconButton onClick={() => setPopper(popper + (popper < (score.data?.getScore.scorelist.stage?.popperTargets ?? 0) ? 1 : 0))}>
                                         <Add />
                                     </IconButton>
                                     <IconButton onClick={() => setPopper(popper - (popper > 0 ? 1 : 0))} >
@@ -466,7 +466,18 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                         }}>DQ</Button>
                     </Grid>
                     <Grid item xs={12 / 3}>
-                        <Button fullWidth variant="contained" color="warning">DNF</Button>
+                        <Button fullWidth variant="contained" color="warning" onClick={() => {
+                            if (!confirm("Are you sure you wanna DNF(Did not finish) this shooter?"))
+                                return
+                            set_dnf({
+                                variables: { id }, onCompleted(data, clientOptions) {
+                                    alert("DNFed")
+                                    router.back()
+                                }, onError(error, clientOptions) {
+                                    alert("Fail to DNF due to server error")
+                                },
+                            });
+                        }}>DNF</Button>
                     </Grid>
                     <Grid item xs={12 / 3}>
                         <Button fullWidth variant="contained" color="success" onClick={submit_score}>Review</Button>
