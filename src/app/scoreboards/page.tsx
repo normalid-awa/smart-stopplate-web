@@ -4,7 +4,9 @@ import {
     Button,
     Card,
     CardActionArea,
+    Dialog,
     Divider,
+    Fab,
     Grid,
     Paper,
     PaperProps,
@@ -16,6 +18,7 @@ import React from "react";
 import { Mutation, Query } from "@/gql_dto";
 import { useRouter } from "next/navigation";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
+import { Add } from "@mui/icons-material";
 
 const GET_ALL_SCOREBOARDS_QUERY = gql`
     query {
@@ -49,10 +52,13 @@ export default function ScoreboardsPage() {
             all_scoreboards.refetch();
         },
     });
+    
+
+    const [dialogOpen, setDialogOpen] = React.useState(false);
     if (all_scoreboards.loading) return <pre>Loading...</pre>;
     if (all_scoreboards.error)
         return <pre>ERROR: {JSON.stringify(all_scoreboards.error)}</pre>;
-    if (!all_scoreboards.data) return <pre>No data</pre>;
+    if (!all_scoreboards.data) return <pre>No data</pre>;        
     return (
         <>
             <Stack gap={2} divider={<Divider />}>
@@ -122,6 +128,22 @@ export default function ScoreboardsPage() {
                     </Card>
                 ))}
             </Stack >
+            <Fab
+                sx={{
+                    position: "absolute",
+                    bottom: 50,
+                    right: 50,
+                }}
+                color="primary"
+                onClick={() => {
+                    setDialogOpen(true);
+                }}
+            >
+                <Add />
+            </Fab>
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+                
+            </Dialog>
         </>
     );
 }
