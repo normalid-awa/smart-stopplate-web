@@ -6,6 +6,7 @@ import {
     Button,
     ButtonGroup,
     Container,
+    Dialog,
     Divider,
     Grid,
     IconButton,
@@ -29,6 +30,7 @@ import { GridColDef } from "@mui/x-data-grid";
 import React from "react";
 import { useLongPress } from "@uidotdev/usehooks";
 import { useRouter } from "next/navigation";
+import TimerPage from "@/app/timer/page";
 
 const GET_SCORE_QUERY = gql`
     query GetScore($id: Int!) {
@@ -237,6 +239,15 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
     }
 
+    const [timerPrompt, setTimerPrompt] = React.useState(false);
+    function openTimer() {
+        setTimerPrompt(true);
+    }
+    function onTimerAssign(time: number) {
+        setTime(time)
+        setTimerPrompt(false)
+    }
+
     // #region
     const attrs = useLongPress(
         (event) => {
@@ -362,345 +373,350 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     if (!score.data) return <pre>No data</pre>;
     // #endregion
     return (
-        <Container maxWidth={"sm"} sx={{ padding: 0 }}>
-            <h1>{score.data.getScore.shooter.name} :</h1>
-            <Paper elevation={10}>
-                <Grid container sx={{ padding: 1 }}>
-                    <Grid item container xs={12} sm={6}>
-                        <Grid item xs={5}>
-                            <Stack
-                                alignItems={"center"}
-                                direction={"row"}
-                                height={"100%"}
-                            >
-                                <p>Timer:</p>
-                            </Stack>
-                        </Grid>
-                        <Grid xs={7} item>
-                            <Stack alignItems={"center"} direction={"row"}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Time"
-                                    value={time}
-                                    onChange={(v) =>
-                                        setTime(parseFloat(v.target.value))
-                                    }
-                                    inputProps={{
-                                        step: 1,
-                                        min: 0,
-                                        type: "number",
-                                        "aria-labelledby": "input-slider",
-                                    }}
-                                />
-                                <IconButton children={<AvTimer />} />
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                    <Grid item container xs={12} sm={6}>
-                        <Grid item xs={5}>
-                            <Stack
-                                alignItems={"center"}
-                                direction={"row"}
-                                height={"100%"}
-                            >
-                                <p>Pro error:</p>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={7}>
-                            <Stack alignItems={"center"} direction={"row"}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Pro error"
-                                    value={pro}
-                                    onChange={(v) =>
-                                        setPro(parseFloat(v.target.value))
-                                    }
-                                    inputProps={{
-                                        step: 1,
-                                        min: 0,
-                                        type: "number",
-                                        "aria-labelledby": "input-slider",
-                                    }}
-                                />
-                                <Stack>
-                                    <IconButton onClick={() => setPro(pro + 1)}>
-                                        <Add />
-                                    </IconButton>
-                                    <IconButton
-                                        onClick={() =>
-                                            setPro(pro - (pro > 0 ? 1 : 0))
-                                        }
-                                    >
-                                        <Remove />
-                                    </IconButton>
-                                </Stack>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                    <Grid item container xs={12} sm={6}>
-                        <Grid item xs={5}>
-                            <Stack
-                                alignItems={"center"}
-                                direction={"row"}
-                                height={"100%"}
-                            >
-                                <p>Popper:</p>
-                            </Stack>
-                        </Grid>
-                        <Grid item xs={7}>
-                            <Stack alignItems={"center"} direction={"row"}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Popper"
-                                    value={popper}
-                                    onChange={(v) =>
-                                        setPopper(parseFloat(v.target.value))
-                                    }
-                                    inputProps={{
-                                        step: 1,
-                                        min: 0,
-                                        max: score.data.getScore.scorelist.stage
-                                            .popperTargets,
-                                        type: "number",
-                                        "aria-labelledby": "input-slider",
-                                    }}
-                                />
-                                <Stack>
-                                    <IconButton
-                                        onClick={() =>
-                                            setPopper(
-                                                popper +
-                                                (popper <
-                                                    (score.data?.getScore
-                                                        .scorelist.stage
-                                                        ?.popperTargets ?? 0)
-                                                    ? 1
-                                                    : 0)
-                                            )
-                                        }
-                                    >
-                                        <Add />
-                                    </IconButton>
-                                    <IconButton
-                                        onClick={() =>
-                                            setPopper(
-                                                popper - (popper > 0 ? 1 : 0)
-                                            )
-                                        }
-                                    >
-                                        <Remove />
-                                    </IconButton>
-                                </Stack>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                </Grid>
-                <TableContainer component={Paper}>
-                    <Table stickyHeader aria-label="simple table">
-                        <TableHead>
-                            <TableRow>
-                                {columns.map((column) => (
-                                    <TableCell key={column.id}>
-                                        {column.label}
-                                    </TableCell>
-                                ))}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {papperData.map((row, i) => (
-                                <StyledTableRow
-                                    key={i}
-                                    sx={{
-                                        "&:last-child td, &:last-child th": {
-                                            border: 0,
-                                        },
-                                        background: `${row.a + row.c + row.d + row.m == 2
-                                            ? theme.palette.success.dark
-                                            : "inherit"
-                                            }`,
-                                    }}
+        <>
+            <Container maxWidth={"sm"} sx={{ padding: 0 }}>
+                <h1>{score.data.getScore.shooter.name} :</h1>
+                <Paper elevation={10}>
+                    <Grid container sx={{ padding: 1 }}>
+                        <Grid item container xs={12} sm={6}>
+                            <Grid item xs={5}>
+                                <Stack
+                                    alignItems={"center"}
+                                    direction={"row"}
+                                    height={"100%"}
                                 >
-                                    <StyledTableCell>
-                                        <Button
-                                            style={{ minWidth: "1px" }}
-                                            fullWidth
-                                            onClick={() =>
-                                                on_cell_click(i, "a")
-                                            }
-                                            {...attrs}
-                                            aria-label={JSON.stringify({
-                                                id: i,
-                                                zone: "a",
-                                            })}
-                                        >
-                                            {row.a}
-                                        </Button>
-                                    </StyledTableCell>
-                                    <StyledTableCell>
-                                        <Button
-                                            style={{ minWidth: "1px" }}
-                                            fullWidth
-                                            onClick={() =>
-                                                on_cell_click(i, "c")
-                                            }
-                                            {...attrs}
-                                            aria-label={JSON.stringify({
-                                                id: i,
-                                                zone: "c",
-                                            })}
-                                        >
-                                            {row.c}
-                                        </Button>
-                                    </StyledTableCell>
-                                    <StyledTableCell>
-                                        <Button
-                                            style={{ minWidth: "1px" }}
-                                            fullWidth
-                                            onClick={() =>
-                                                on_cell_click(i, "d")
-                                            }
-                                            {...attrs}
-                                            aria-label={JSON.stringify({
-                                                id: i,
-                                                zone: "d",
-                                            })}
-                                        >
-                                            {row.d}
-                                        </Button>
-                                    </StyledTableCell>
-                                    <StyledTableCell>
-                                        <Button
-                                            style={{ minWidth: "1px" }}
-                                            fullWidth
-                                            onClick={() =>
-                                                on_cell_click(i, "m")
-                                            }
-                                            {...attrs}
-                                            aria-label={JSON.stringify({
-                                                id: i,
-                                                zone: "m",
-                                            })}
-                                        >
-                                            {row.m}
-                                        </Button>
-                                    </StyledTableCell>
-                                    <StyledTableCell>
-                                        <Button
-                                            style={{ minWidth: "1px" }}
-                                            fullWidth
-                                            onClick={() =>
-                                                on_cell_click(i, "ns")
-                                            }
-                                            {...attrs}
-                                            aria-label={JSON.stringify({
-                                                id: i,
-                                                zone: "ns",
-                                            })}
-                                        >
-                                            {row.ns}
-                                        </Button>
-                                    </StyledTableCell>
-                                </StyledTableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <Divider sx={{ padding: 1 }} />
-                {score.data.getScore.scorelist.isLocked ? (
-                    <p>This score has been locked</p>
-                ) :
-                    <Grid container>
-                        <Grid item xs={12 / 3}>
-                            <Button
-                                fullWidth
-                                variant="contained"
-                                color="error"
-                                onClick={() => {
-                                    if (
-                                        !confirm(
-                                            "Are you sure you wanna dq(disqualified) this shooter?"
-                                        )
-                                    )
-                                        return;
-                                    let v = prompt(
-                                        "Let CRO/RO to type DQ to process dq(disqualified) action"
-                                    )?.toLocaleUpperCase();
-                                    if (v != "DQ") {
-                                        alert("Action cancelled");
-                                        return;
-                                    }
-                                    set_dq({
-                                        variables: { id },
-                                        onCompleted(data, clientOptions) {
-                                            alert("DQed");
-                                            router.back();
-                                        },
-                                        onError(error, clientOptions) {
-                                            alert("Fail to DQ due to server error");
-                                        },
-                                    });
-                                }}
-                            >
-                                DQ
-                            </Button>
+                                    <p>Timer:</p>
+                                </Stack>
+                            </Grid>
+                            <Grid xs={7} item>
+                                <Stack alignItems={"center"} direction={"row"}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Time"
+                                        value={time}
+                                        onChange={(v) =>
+                                            setTime(parseFloat(v.target.value))
+                                        }
+                                        inputProps={{
+                                            step: 1,
+                                            min: 0,
+                                            type: "number",
+                                            "aria-labelledby": "input-slider",
+                                        }}
+                                    />
+                                    <IconButton children={<AvTimer />} onClick={openTimer} />
+                                </Stack>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12 / 3}>
-                            <Button
-                                fullWidth
-                                variant="contained"
-                                color="warning"
-                                onClick={() => {
-                                    if (
-                                        !confirm(
-                                            "Are you sure you wanna DNF(Did not finish) this shooter?"
-                                        )
-                                    )
-                                        return;
-                                    set_dnf({
-                                        variables: { id },
-                                        onCompleted(data, clientOptions) {
-                                            alert("DNFed");
-                                            router.back();
-                                        },
-                                        onError(error, clientOptions) {
-                                            alert(
-                                                "Fail to DNF due to server error"
-                                            );
-                                        },
-                                    });
-                                }}
-                            >
-                                DNF
-                            </Button>
+                        <Grid item container xs={12} sm={6}>
+                            <Grid item xs={5}>
+                                <Stack
+                                    alignItems={"center"}
+                                    direction={"row"}
+                                    height={"100%"}
+                                >
+                                    <p>Pro error:</p>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={7}>
+                                <Stack alignItems={"center"} direction={"row"}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Pro error"
+                                        value={pro}
+                                        onChange={(v) =>
+                                            setPro(parseFloat(v.target.value))
+                                        }
+                                        inputProps={{
+                                            step: 1,
+                                            min: 0,
+                                            type: "number",
+                                            "aria-labelledby": "input-slider",
+                                        }}
+                                    />
+                                    <Stack>
+                                        <IconButton onClick={() => setPro(pro + 1)}>
+                                            <Add />
+                                        </IconButton>
+                                        <IconButton
+                                            onClick={() =>
+                                                setPro(pro - (pro > 0 ? 1 : 0))
+                                            }
+                                        >
+                                            <Remove />
+                                        </IconButton>
+                                    </Stack>
+                                </Stack>
+                            </Grid>
                         </Grid>
-                        {score.data.getScore.scoreState === ScoreState.Scored ? (
+                        <Grid item container xs={12} sm={6}>
+                            <Grid item xs={5}>
+                                <Stack
+                                    alignItems={"center"}
+                                    direction={"row"}
+                                    height={"100%"}
+                                >
+                                    <p>Popper:</p>
+                                </Stack>
+                            </Grid>
+                            <Grid item xs={7}>
+                                <Stack alignItems={"center"} direction={"row"}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Popper"
+                                        value={popper}
+                                        onChange={(v) =>
+                                            setPopper(parseFloat(v.target.value))
+                                        }
+                                        inputProps={{
+                                            step: 1,
+                                            min: 0,
+                                            max: score.data.getScore.scorelist.stage
+                                                .popperTargets,
+                                            type: "number",
+                                            "aria-labelledby": "input-slider",
+                                        }}
+                                    />
+                                    <Stack>
+                                        <IconButton
+                                            onClick={() =>
+                                                setPopper(
+                                                    popper +
+                                                    (popper <
+                                                        (score.data?.getScore
+                                                            .scorelist.stage
+                                                            ?.popperTargets ?? 0)
+                                                        ? 1
+                                                        : 0)
+                                                )
+                                            }
+                                        >
+                                            <Add />
+                                        </IconButton>
+                                        <IconButton
+                                            onClick={() =>
+                                                setPopper(
+                                                    popper - (popper > 0 ? 1 : 0)
+                                                )
+                                            }
+                                        >
+                                            <Remove />
+                                        </IconButton>
+                                    </Stack>
+                                </Stack>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <TableContainer component={Paper}>
+                        <Table stickyHeader aria-label="simple table">
+                            <TableHead>
+                                <TableRow>
+                                    {columns.map((column) => (
+                                        <TableCell key={column.id}>
+                                            {column.label}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {papperData.map((row, i) => (
+                                    <StyledTableRow
+                                        key={i}
+                                        sx={{
+                                            "&:last-child td, &:last-child th": {
+                                                border: 0,
+                                            },
+                                            background: `${row.a + row.c + row.d + row.m == 2
+                                                ? theme.palette.success.dark
+                                                : "inherit"
+                                                }`,
+                                        }}
+                                    >
+                                        <StyledTableCell>
+                                            <Button
+                                                style={{ minWidth: "1px" }}
+                                                fullWidth
+                                                onClick={() =>
+                                                    on_cell_click(i, "a")
+                                                }
+                                                {...attrs}
+                                                aria-label={JSON.stringify({
+                                                    id: i,
+                                                    zone: "a",
+                                                })}
+                                            >
+                                                {row.a}
+                                            </Button>
+                                        </StyledTableCell>
+                                        <StyledTableCell>
+                                            <Button
+                                                style={{ minWidth: "1px" }}
+                                                fullWidth
+                                                onClick={() =>
+                                                    on_cell_click(i, "c")
+                                                }
+                                                {...attrs}
+                                                aria-label={JSON.stringify({
+                                                    id: i,
+                                                    zone: "c",
+                                                })}
+                                            >
+                                                {row.c}
+                                            </Button>
+                                        </StyledTableCell>
+                                        <StyledTableCell>
+                                            <Button
+                                                style={{ minWidth: "1px" }}
+                                                fullWidth
+                                                onClick={() =>
+                                                    on_cell_click(i, "d")
+                                                }
+                                                {...attrs}
+                                                aria-label={JSON.stringify({
+                                                    id: i,
+                                                    zone: "d",
+                                                })}
+                                            >
+                                                {row.d}
+                                            </Button>
+                                        </StyledTableCell>
+                                        <StyledTableCell>
+                                            <Button
+                                                style={{ minWidth: "1px" }}
+                                                fullWidth
+                                                onClick={() =>
+                                                    on_cell_click(i, "m")
+                                                }
+                                                {...attrs}
+                                                aria-label={JSON.stringify({
+                                                    id: i,
+                                                    zone: "m",
+                                                })}
+                                            >
+                                                {row.m}
+                                            </Button>
+                                        </StyledTableCell>
+                                        <StyledTableCell>
+                                            <Button
+                                                style={{ minWidth: "1px" }}
+                                                fullWidth
+                                                onClick={() =>
+                                                    on_cell_click(i, "ns")
+                                                }
+                                                {...attrs}
+                                                aria-label={JSON.stringify({
+                                                    id: i,
+                                                    zone: "ns",
+                                                })}
+                                            >
+                                                {row.ns}
+                                            </Button>
+                                        </StyledTableCell>
+                                    </StyledTableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <Divider sx={{ padding: 1 }} />
+                    {score.data.getScore.scorelist.isLocked ? (
+                        <p>This score has been locked</p>
+                    ) :
+                        <Grid container>
                             <Grid item xs={12 / 3}>
                                 <Button
                                     fullWidth
                                     variant="contained"
-                                    color="success"
-                                    onClick={perform_update_score}
+                                    color="error"
+                                    onClick={() => {
+                                        if (
+                                            !confirm(
+                                                "Are you sure you wanna dq(disqualified) this shooter?"
+                                            )
+                                        )
+                                            return;
+                                        let v = prompt(
+                                            "Let CRO/RO to type DQ to process dq(disqualified) action"
+                                        )?.toLocaleUpperCase();
+                                        if (v != "DQ") {
+                                            alert("Action cancelled");
+                                            return;
+                                        }
+                                        set_dq({
+                                            variables: { id },
+                                            onCompleted(data, clientOptions) {
+                                                alert("DQed");
+                                                router.back();
+                                            },
+                                            onError(error, clientOptions) {
+                                                alert("Fail to DQ due to server error");
+                                            },
+                                        });
+                                    }}
                                 >
-                                    Update
+                                    DQ
                                 </Button>
                             </Grid>
-                        ) :
                             <Grid item xs={12 / 3}>
                                 <Button
                                     fullWidth
                                     variant="contained"
-                                    color="success"
-                                    onClick={submit_score}
+                                    color="warning"
+                                    onClick={() => {
+                                        if (
+                                            !confirm(
+                                                "Are you sure you wanna DNF(Did not finish) this shooter?"
+                                            )
+                                        )
+                                            return;
+                                        set_dnf({
+                                            variables: { id },
+                                            onCompleted(data, clientOptions) {
+                                                alert("DNFed");
+                                                router.back();
+                                            },
+                                            onError(error, clientOptions) {
+                                                alert(
+                                                    "Fail to DNF due to server error"
+                                                );
+                                            },
+                                        });
+                                    }}
                                 >
-                                    Review
+                                    DNF
                                 </Button>
-                            </Grid>}
-                    </Grid>
-                }
-            </Paper>
-        </Container>
+                            </Grid>
+                            {score.data.getScore.scoreState === ScoreState.Scored ? (
+                                <Grid item xs={12 / 3}>
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        color="success"
+                                        onClick={perform_update_score}
+                                    >
+                                        Update
+                                    </Button>
+                                </Grid>
+                            ) :
+                                <Grid item xs={12 / 3}>
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        color="success"
+                                        onClick={submit_score}
+                                    >
+                                        Review
+                                    </Button>
+                                </Grid>}
+                        </Grid>
+                    }
+                </Paper>
+            </Container>
+            <Dialog open={timerPrompt} onClose={() => setTimerPrompt(false)}>
+                <TimerPage onAssign={onTimerAssign} />
+            </Dialog>
+        </>
     );
 }

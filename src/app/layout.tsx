@@ -96,6 +96,15 @@ export default function RootLayout({
 
 	const [open, setOpen] = React.useState(false);
 
+	React.useEffect(() => {
+		console.log(window);
+		window.addEventListener("keydown",(e: KeyboardEvent) => {
+			if ((e.which || e.keyCode) == 116 || (e.which || e.keyCode) == 82) e.preventDefault();
+
+		})
+		addEventListener("unload", (event) => {event.preventDefault()});
+	})
+
 	return (
 		<html lang="en">
 			<head>
