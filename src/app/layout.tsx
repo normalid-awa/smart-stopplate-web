@@ -1,4 +1,11 @@
 "use client";
+
+export const dynamic = 'auto'
+export const dynamicParams = true
+export const revalidate = false
+export const fetchCache = 'auto'
+export const runtime = 'edge'
+export const preferredRegion = 'auto'
 // import type { Metadata } from 'next'
 import { Inter } from "next/font/google";
 import "./globals.css";
