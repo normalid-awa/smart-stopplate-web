@@ -242,6 +242,8 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                 console.log(params)
                 if (params.row.scoreState === "DQ") 
                     result += "(DQ)"
+                if (params.row.scoreState === "DNF")
+                    result += "(DNF)"
                 return result;
             },
             type: "string",
