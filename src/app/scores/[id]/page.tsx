@@ -1,7 +1,7 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { Query } from "@/gql_dto";
+import { Query, ScoreState } from "@/gql_dto";
 import {
     Button,
     ButtonGroup,
@@ -37,7 +37,17 @@ const GET_SCORE_QUERY = gql`
             shooter {
                 name
             }
+            scoreState
+            alphaZone
+            charlieZone
+            deltaZone
+            poppers
+            miss
+            noShoots
+            proError
+            time
             scorelist {
+                isLocked
                 stage {
                     paperTargets
                     popperTargets
@@ -60,7 +70,7 @@ const ASSIGN_SCORE_MUTATION = gql`
         $time: Float!
     ) {
         assignScore(
-            id: $id,
+            id: $id
             alphaZone: $alphaZone
             charlieZone: $charlieZone
             deltaZone: $deltaZone
@@ -73,29 +83,48 @@ const ASSIGN_SCORE_MUTATION = gql`
             id
         }
     }
-`
+`;
+const UPDATE_SCORE_MUTATION = gql`
+    mutation UpdateScore(
+        $id: Int!
+        $alphaZone: Int!
+        $charlieZone: Int!
+        $deltaZone: Int!
+        $noShoots: Int!
+        $miss: Int!
+        $poppers: Int!
+        $proError: Int!
+        $time: Float!
+    ) {
+        updateScore(
+            id: $id
+            alphaZone: $alphaZone
+            charlieZone: $charlieZone
+            deltaZone: $deltaZone
+            noShoots: $noShoots
+            miss: $miss
+            poppers: $poppers
+            proError: $proError
+            time: $time
+        ) {
+            id
+        }
+    }
+`;
 const SET_SCORE_DQ = gql`
-    mutation SetScoreDQ(
-        $id: Int!
-    ) {
-        setScoreDQ(
-            id: $id,
-        ) {
+    mutation SetScoreDQ($id: Int!) {
+        setScoreDQ(id: $id) {
             id
         }
     }
-`
+`;
 const SET_SCORE_DNF = gql`
-    mutation SetScoreDNF(
-        $id: Int!
-    ) {
-        setScoreDNF(
-            id: $id,
-        ) {
+    mutation SetScoreDNF($id: Int!) {
+        setScoreDNF(id: $id) {
             id
         }
     }
-`
+`;
 const Item = styled(Paper)((theme) => ({
     padding: theme.theme.spacing(1),
 }));
@@ -107,14 +136,21 @@ const StyledTableCell = styled(TableCell)((theme) => ({
     paddingBottom: 5,
 }));
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-
-}));
+const StyledTableRow = styled(TableRow)(({ theme }) => ({}));
 
 interface Column {
     id: string;
     label: string;
     maxWidth?: number;
+}
+
+interface PaperTargetData {
+    id: number;
+    a: number;
+    c: number;
+    d: number;
+    m: number;
+    ns: number;
 }
 
 export default function ScoringPage({ params }: { params: { id: string } }) {
@@ -124,25 +160,17 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             id,
         },
     });
-    const [papperData, setPapperData] = React.useState<
-        {
-            id: number;
-            a: number;
-            c: number;
-            d: number;
-            m: number;
-            ns: number;
-        }[]
-    >([]);
-    const [assign_score, assign_score_] = useMutation(ASSIGN_SCORE_MUTATION)
-    const [set_dq, set_dq_] = useMutation(SET_SCORE_DQ)
-    const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF)
+    const [papperData, setPapperData] = React.useState<PaperTargetData[]>([]);
+    const [assign_score, assign_score_] = useMutation(ASSIGN_SCORE_MUTATION);
+    const [update_score, update_score_] = useMutation(UPDATE_SCORE_MUTATION);
+    const [set_dq, set_dq_] = useMutation(SET_SCORE_DQ);
+    const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF);
 
     const [time, setTime] = React.useState(0);
     const [pro, setPro] = React.useState(0);
     const [popper, setPopper] = React.useState(0);
 
-    const theme = useTheme()
+    const theme = useTheme();
     const router = useRouter();
 
     function submit_score() {
@@ -157,9 +185,8 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             total_d += v.d;
             total_ns += v.ns;
             total_m += v.m;
-        })
-        if (!confirm("Are you sure you are finished marking?"))
-            return
+        });
+        if (!confirm("Are you sure you are finished marking?")) return;
 
         assign_score({
             variables: {
@@ -171,7 +198,38 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 miss: total_m,
                 poppers: popper,
                 proError: pro,
-                time: time
+                time: time,
+            },
+            onCompleted(data, clientOptions) {
+                router.back();
+            },
+        });
+    }
+    function perform_update_score() {
+        var total_a: number = 0;
+        var total_c: number = 0;
+        var total_d: number = 0;
+        var total_ns: number = 0;
+        var total_m: number = 0;
+        papperData.map((v) => {
+            total_a += v.a;
+            total_c += v.c;
+            total_d += v.d;
+            total_ns += v.ns;
+            total_m += v.m;
+        });
+
+        update_score({
+            variables: {
+                id: id,
+                alphaZone: total_a,
+                charlieZone: total_c,
+                deltaZone: total_d,
+                noShoots: total_ns,
+                miss: total_m,
+                poppers: popper,
+                proError: pro,
+                time: time,
             },
             onCompleted(data, clientOptions) {
                 router.back();
@@ -179,12 +237,17 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
     }
 
-    // #region  
+    // #region
     const attrs = useLongPress(
         (event) => {
             console.log(event);
             let data = papperData.slice();
-            let param: { id: number, zone: "id" /* this is fake, to cancell out the ts error :) */ } = JSON.parse((event.target as unknown as { ariaLabel: string }).ariaLabel)
+            let param: {
+                id: number;
+                zone: "id" /* this is fake, to cancell out the ts error :) */;
+            } = JSON.parse(
+                (event.target as unknown as { ariaLabel: string }).ariaLabel
+            );
             data[param.id][param.zone] = 0;
             setPapperData(data);
         },
@@ -193,10 +256,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         }
     );
     function on_cell_click(id: number, zone: string) {
-        let ts_zone = zone as "id";/* this is fake, to cancell out the ts error :) */
+        let ts_zone =
+            zone as "id"; /* this is fake, to cancell out the ts error :) */
         let data = papperData.slice();
-        if (data[id].a + data[id].c + data[id].d + data[id].m >= 2)
-            return
+        if (data[id].a + data[id].c + data[id].d + data[id].m >= 2) return;
         data[id][ts_zone] = data[id][ts_zone] + 1;
         setPapperData(data);
     }
@@ -221,7 +284,8 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     ];
     React.useEffect(() => {
         if (!score.data) return;
-        let pappers = [];
+
+        let pappers: PaperTargetData[] = [];
         for (
             let index = 0;
             index < score.data.getScore.scorelist.stage.paperTargets;
@@ -235,6 +299,60 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 m: 0,
                 ns: 0,
             });
+        }
+        if (score.data.getScore.scoreState == ScoreState.Scored) {
+            let a = score.data.getScore.alphaZone;
+            let c = score.data.getScore.charlieZone;
+            let d = score.data.getScore.deltaZone;
+            let m = score.data.getScore.miss;
+            let ns = score.data.getScore.noShoots;
+            let pp = score.data.getScore.poppers;
+            let pe = score.data.getScore.proError;
+            let time = score.data.getScore.time;
+            pappers.forEach((v, i) => {
+                let added = 0;
+                if (a > 1) {
+                    pappers[i].a = 2;
+                    a -= 2;
+                    added += 2;
+                } else if (c > 1) {
+                    pappers[i].c = 2;
+                    c -= 2;
+                    added += 2;
+                } else if (d > 1) {
+                    pappers[i].d = 2;
+                    d -= 2;
+                    added += 2;
+                } else if (m > 1) {
+                    pappers[i].m = 2;
+                    m -= 2;
+                    added += 2;
+                }
+                if (added >= 2) return;
+                while (added < 2) {
+                    if (a == 1) {
+                        pappers[i].a = 1;
+                        a -= 1;
+                        added++;
+                    } else if (c == 1) {
+                        pappers[i].c = 1;
+                        c -= 1;
+                        added++;
+                    } else if (d == 1) {
+                        pappers[i].d = 1;
+                        d -= 1;
+                        added++;
+                    } else if (m == 1) {
+                        pappers[i].m = 1;
+                        m -= 1;
+                        added++;
+                    }
+                }
+            });
+            pappers[0].ns = ns;
+            setPopper(pp);
+            setPro(pe);
+            setTime(time);
         }
         setPapperData(pappers);
     }, [score]);
@@ -265,7 +383,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     type="number"
                                     label="Time"
                                     value={time}
-                                    onChange={(v) => setTime(parseFloat(v.target.value))}
+                                    onChange={(v) =>
+                                        setTime(parseFloat(v.target.value))
+                                    }
                                     inputProps={{
                                         step: 1,
                                         min: 0,
@@ -294,7 +414,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     type="number"
                                     label="Pro error"
                                     value={pro}
-                                    onChange={(v) => setPro(parseFloat(v.target.value))}
+                                    onChange={(v) =>
+                                        setPro(parseFloat(v.target.value))
+                                    }
                                     inputProps={{
                                         step: 1,
                                         min: 0,
@@ -306,7 +428,11 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     <IconButton onClick={() => setPro(pro + 1)}>
                                         <Add />
                                     </IconButton>
-                                    <IconButton onClick={() => setPro(pro - (pro > 0 ? 1 : 0))}>
+                                    <IconButton
+                                        onClick={() =>
+                                            setPro(pro - (pro > 0 ? 1 : 0))
+                                        }
+                                    >
                                         <Remove />
                                     </IconButton>
                                 </Stack>
@@ -330,7 +456,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     type="number"
                                     label="Popper"
                                     value={popper}
-                                    onChange={(v) => setPopper(parseFloat(v.target.value))}
+                                    onChange={(v) =>
+                                        setPopper(parseFloat(v.target.value))
+                                    }
                                     inputProps={{
                                         step: 1,
                                         min: 0,
@@ -341,10 +469,28 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     }}
                                 />
                                 <Stack>
-                                    <IconButton onClick={() => setPopper(popper + (popper < (score.data?.getScore.scorelist.stage?.popperTargets ?? 0) ? 1 : 0))}>
+                                    <IconButton
+                                        onClick={() =>
+                                            setPopper(
+                                                popper +
+                                                (popper <
+                                                    (score.data?.getScore
+                                                        .scorelist.stage
+                                                        ?.popperTargets ?? 0)
+                                                    ? 1
+                                                    : 0)
+                                            )
+                                        }
+                                    >
                                         <Add />
                                     </IconButton>
-                                    <IconButton onClick={() => setPopper(popper - (popper > 0 ? 1 : 0))} >
+                                    <IconButton
+                                        onClick={() =>
+                                            setPopper(
+                                                popper - (popper > 0 ? 1 : 0)
+                                            )
+                                        }
+                                    >
                                         <Remove />
                                     </IconButton>
                                 </Stack>
@@ -371,7 +517,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         "&:last-child td, &:last-child th": {
                                             border: 0,
                                         },
-                                        background: `${(row.a + row.c + row.d + row.m == 2) ? theme.palette.success.dark : "inherit"}`,
+                                        background: `${row.a + row.c + row.d + row.m == 2
+                                            ? theme.palette.success.dark
+                                            : "inherit"
+                                            }`,
                                     }}
                                 >
                                     <StyledTableCell>
@@ -382,7 +531,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                                 on_cell_click(i, "a")
                                             }
                                             {...attrs}
-                                            aria-label={JSON.stringify({ id: i, zone: "a" })}
+                                            aria-label={JSON.stringify({
+                                                id: i,
+                                                zone: "a",
+                                            })}
                                         >
                                             {row.a}
                                         </Button>
@@ -395,7 +547,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                                 on_cell_click(i, "c")
                                             }
                                             {...attrs}
-                                            aria-label={JSON.stringify({ id: i, zone: "c" })}
+                                            aria-label={JSON.stringify({
+                                                id: i,
+                                                zone: "c",
+                                            })}
                                         >
                                             {row.c}
                                         </Button>
@@ -408,7 +563,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                                 on_cell_click(i, "d")
                                             }
                                             {...attrs}
-                                            aria-label={JSON.stringify({ id: i, zone: "d" })}
+                                            aria-label={JSON.stringify({
+                                                id: i,
+                                                zone: "d",
+                                            })}
                                         >
                                             {row.d}
                                         </Button>
@@ -421,7 +579,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                                 on_cell_click(i, "m")
                                             }
                                             {...attrs}
-                                            aria-label={JSON.stringify({ id: i, zone: "m" })}
+                                            aria-label={JSON.stringify({
+                                                id: i,
+                                                zone: "m",
+                                            })}
                                         >
                                             {row.m}
                                         </Button>
@@ -434,7 +595,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                                 on_cell_click(i, "ns")
                                             }
                                             {...attrs}
-                                            aria-label={JSON.stringify({ id: i, zone: "ns" })}
+                                            aria-label={JSON.stringify({
+                                                id: i,
+                                                zone: "ns",
+                                            })}
                                         >
                                             {row.ns}
                                         </Button>
@@ -444,45 +608,98 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                         </TableBody>
                     </Table>
                 </TableContainer>
-                <Divider sx={{ padding: 2 }} />
-                <Grid container>
-                    <Grid item xs={12 / 3}>
-                        <Button fullWidth variant="contained" color="error" onClick={() => {
-                            if (!confirm("Are you sure you wanna dq(disqualified) this shooter?"))
-                                return
-                            let v = prompt("Let CRO/RO to type DQ to process dq(disqualified) action")?.toLocaleUpperCase()
-                            if (v != "DQ") {
-                                alert("Action cancelled")
-                                return
-                            }
-                            set_dq({
-                                variables: { id }, onCompleted(data, clientOptions) {
-                                    alert("DQed")
-                                    router.back()
-                                }, onError(error, clientOptions) {
-                                    alert("Fail to DQ due to server error")
-                                },
-                            });
-                        }}>DQ</Button>
+                <Divider sx={{ padding: 1 }} />
+                {score.data.getScore.scorelist.isLocked ? (
+                    <p>This score has been locked</p>
+                ) :
+                    <Grid container>
+                        <Grid item xs={12 / 3}>
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                color="error"
+                                onClick={() => {
+                                    if (
+                                        !confirm(
+                                            "Are you sure you wanna dq(disqualified) this shooter?"
+                                        )
+                                    )
+                                        return;
+                                    let v = prompt(
+                                        "Let CRO/RO to type DQ to process dq(disqualified) action"
+                                    )?.toLocaleUpperCase();
+                                    if (v != "DQ") {
+                                        alert("Action cancelled");
+                                        return;
+                                    }
+                                    set_dq({
+                                        variables: { id },
+                                        onCompleted(data, clientOptions) {
+                                            alert("DQed");
+                                            router.back();
+                                        },
+                                        onError(error, clientOptions) {
+                                            alert("Fail to DQ due to server error");
+                                        },
+                                    });
+                                }}
+                            >
+                                DQ
+                            </Button>
+                        </Grid>
+                        <Grid item xs={12 / 3}>
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                color="warning"
+                                onClick={() => {
+                                    if (
+                                        !confirm(
+                                            "Are you sure you wanna DNF(Did not finish) this shooter?"
+                                        )
+                                    )
+                                        return;
+                                    set_dnf({
+                                        variables: { id },
+                                        onCompleted(data, clientOptions) {
+                                            alert("DNFed");
+                                            router.back();
+                                        },
+                                        onError(error, clientOptions) {
+                                            alert(
+                                                "Fail to DNF due to server error"
+                                            );
+                                        },
+                                    });
+                                }}
+                            >
+                                DNF
+                            </Button>
+                        </Grid>
+                        {score.data.getScore.scoreState === ScoreState.Scored ? (
+                            <Grid item xs={12 / 3}>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    color="success"
+                                    onClick={perform_update_score}
+                                >
+                                    Update
+                                </Button>
+                            </Grid>
+                        ) :
+                            <Grid item xs={12 / 3}>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    color="success"
+                                    onClick={submit_score}
+                                >
+                                    Review
+                                </Button>
+                            </Grid>}
                     </Grid>
-                    <Grid item xs={12 / 3}>
-                        <Button fullWidth variant="contained" color="warning" onClick={() => {
-                            if (!confirm("Are you sure you wanna DNF(Did not finish) this shooter?"))
-                                return
-                            set_dnf({
-                                variables: { id }, onCompleted(data, clientOptions) {
-                                    alert("DNFed")
-                                    router.back()
-                                }, onError(error, clientOptions) {
-                                    alert("Fail to DNF due to server error")
-                                },
-                            });
-                        }}>DNF</Button>
-                    </Grid>
-                    <Grid item xs={12 / 3}>
-                        <Button fullWidth variant="contained" color="success" onClick={submit_score}>Review</Button>
-                    </Grid>
-                </Grid>
+                }
             </Paper>
         </Container>
     );

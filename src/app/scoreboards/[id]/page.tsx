@@ -1,5 +1,5 @@
 "use client";
-import { gql, useMutation, useQuery } from "@apollo/client";
+import { gql, useMutation, useQuery, useSubscription } from "@apollo/client";
 import { Query } from "@/gql_dto";
 import {
     Button,
@@ -39,6 +39,11 @@ const LOCK_SCORELIST_MUTATION = gql`
         }
     }
 `;
+const SUBSCRIBE_TO_SCORELIST_UPDATE_SUBSCRIPTION = gql`
+    subscription SubscribeToScorelistUpdate{
+        subscribeToScorelistUpdate
+    }
+`;
 
 export default function ScoreboardPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
@@ -47,6 +52,11 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
         variables: { id: id },
     });
     const [lock_scorelist, _] = useMutation(LOCK_SCORELIST_MUTATION);
+    useSubscription(SUBSCRIBE_TO_SCORELIST_UPDATE_SUBSCRIPTION, {
+        onData(options) {
+            scoreboard.refetch()
+        },
+    });
 
     if (scoreboard.loading) return <pre>Loading...</pre>;
     if (scoreboard.error)
@@ -57,7 +67,7 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
         <>
             <Stack gap={2} divider={<Divider />}>
                 <h1>Scoreboard: {scoreboard.data.getScoreboard.name}</h1>
-                {scoreboard.data.getScoreboard.scorelists.map((v,i) => (
+                {scoreboard.data.getScoreboard.scorelists.map((v, i) => (
                     <Card elevation={10} key={i}>
                         <Grid container alignItems={"center"}>
                             <Grid item xs={8} md={11}>

@@ -6,9 +6,9 @@ import Button from '@mui/material/Button';
 import React from 'react';
 import Box from '@mui/material/Box';
 import ButtonGroup from '@mui/material/ButtonGroup';
-import { ButtonProps, CssBaseline, Paper, ThemeProvider, createTheme, useTheme } from '@mui/material';
+import { AppBar, ButtonProps, CssBaseline, Drawer, IconButton, MenuItem, Paper, Slide, ThemeProvider, Toolbar, Typography, createTheme, useScrollTrigger, useTheme } from '@mui/material';
 import { ThemeOptions } from '@mui/material/styles';
-import { ArrowBack, Menu } from '@mui/icons-material';
+import { AccountCircle, ArrowBack, Menu } from '@mui/icons-material';
 import { ROUTE_LIST, __DEV__ } from '../constant';
 import Link from 'next/link';
 import Stack from '@mui/material/Stack';
@@ -30,37 +30,13 @@ const inter = Inter({ subsets: ['latin'] })
 // }
 
 
-const Drawer = () => {
-	const [open, setOpen] = React.useState(false);
-
-
-	const MenuButton = (props: ButtonProps) => {
-		return open ?
-			<Button style={{
-				height: "3rem",
-				justifyContent: "right",
-				width: "100%",
-			}} {...props} /> :
-			<Button style={{
-				height: "3rem",
-			}} sx={{ ".MuiButton-endIcon": { margin: 0 } }} {...props}><></></Button>
-	}
-
-	React.useMemo(() => {
-		BLEStopplateService.getInstance();
-	}, [])
-
-	return <Paper elevation={10} style={{ height: "100vh" }}>
-		<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
-			<MenuButton variant='contained' endIcon={open ? <ArrowBack /> : <Menu />} onClick={() => setOpen(!open)}>Collapse</MenuButton>
-			{ROUTE_LIST.map((v, i) => v.show_on_sidebar ? <Link key={i} href={`${v.dir}`}><MenuButton variant='outlined' endIcon={<v.icon />}>
-				{v.display_name}
-			</MenuButton></Link> : null)}
-		</ButtonGroup>
-	</Paper>
+const MenuButton = (props: ButtonProps) => {
+	return <Button style={{
+			height: "3rem",
+			justifyContent: "right",
+			width: "100%",
+		}} {...props} />
 }
-
-
 export const themeOptions: ThemeOptions = createTheme({
 	palette: {
 		mode: 'dark',
@@ -111,12 +87,38 @@ if (__DEV__) {  // Adds messages only in a dev environment
 
 /* #endregion */
 
+interface Props {
+	/**
+	 * Injected by the documentation to work in an iframe.
+	 * You won't need it on your project.
+	 */
+	children: React.ReactElement;
+}
+function HideOnScroll(props: Props) {
+	const { children } = props;
+	// Note that you normally won't need to set the window ref as useScrollTrigger
+	// will default to window.
+	// This is only being set here because the demo is in an iframe.
+	const trigger = useScrollTrigger({
+		target: window,
+	});
+
+	return (
+		<Slide appear={false} direction="down" in={!trigger}>
+			{children}
+		</Slide>
+	);
+}
+
 export default function RootLayout({
 	children,
 }: {
 	children: React.ReactNode
 }) {
 	const theme = useTheme();
+
+	const [open, setOpen] = React.useState(false);
+
 	return (
 		<html lang="en">
 			<head>
@@ -126,9 +128,51 @@ export default function RootLayout({
 				<ThemeProvider theme={themeOptions}>
 					<CssBaseline />
 					<ApolloProvider client={client}>
+						<HideOnScroll>
+							<AppBar position="static">
+								<Toolbar>
+									<IconButton
+										size="large"
+										edge="start"
+										color="inherit"
+										aria-label="menu"
+										sx={{ mr: 2 }}
+										onClick={() => setOpen(true)}
+									>
+										<Menu />
+									</IconButton>
+									<Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+										Smart IPSC Training System
+									</Typography>
+								</Toolbar>
+							</AppBar>
+						</HideOnScroll>
+						<nav>
+							<Drawer
+								variant="temporary"
+								open={open}
+								onClose={() => setOpen(false)}
+								ModalProps={{
+									keepMounted: true, // Better open performance on mobile.
+								}}
+								sx={{
+									display: { xs: 'block', sm: 'none' },
+									'& .MuiDrawer-paper': { boxSizing: 'border-box', width: "40vw" },
+								}}
+							>
+								<Paper elevation={10} style={{ height: "100vh" }}>
+									<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
+										<MenuButton variant='contained' endIcon={open ? <ArrowBack /> : <Menu />} onClick={() => setOpen(!open)}>Collapse</MenuButton>
+										{ROUTE_LIST.map((v, i) => v.show_on_sidebar ? <Link key={i} href={`${v.dir}`}><MenuButton variant='outlined' endIcon={<v.icon />}>
+											{v.display_name}
+										</MenuButton></Link> : null)}
+									</ButtonGroup>
+								</Paper>
+							</Drawer>
+						</nav>
 						<Paper>
 							<Stack direction={"row"}>
-								<Drawer />
+								{/* <SideDrawer /> */}
 								<Box component="main" sx={{ flexGrow: 1, p: 3, overflow: "auto", height: "100vh", scrollBehavior: "auto" }}>
 									{children}
 								</Box>

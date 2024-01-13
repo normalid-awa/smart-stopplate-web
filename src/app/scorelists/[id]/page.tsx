@@ -3,6 +3,7 @@ import { gql, useMutation, useQuery, useSubscription } from "@apollo/client";
 import {
     Box,
     Button,
+    ButtonProps,
     Card,
     Dialog,
     DialogActions,
@@ -30,12 +31,19 @@ import {
     styled,
     useTheme,
 } from "@mui/material";
-import { Query, Score } from "@/gql_dto";
+import { Query, Score, ScoreState } from "@/gql_dto";
 import React from "react";
 import {
     DataGrid,
     GridColDef,
+    GridCsvExportMenuItem,
+    GridCsvExportOptions,
+    GridToolbarContainerProps,
+    GridToolbarExportContainer,
     GridValueGetterParams,
+    gridFilteredSortedRowIdsSelector,
+    gridVisibleColumnFieldsSelector,
+    useGridApiContext,
     useGridApiRef,
 } from "@mui/x-data-grid";
 import {
@@ -49,6 +57,10 @@ import AddShooterDialog from "./addShooterDialog";
 import { useRouter } from "next/navigation";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
 import { getBackgroundColor, getHoverBackgroundColor, getSelectedBackgroundColor, getSelectedHoverBackgroundColor } from "@/utils";
+import { GridApi } from "@mui/x-data-grid-pro";
+import { GridExportMenuItemProps } from "@mui/x-data-grid";
+import { GridToolbarContainer } from "@mui/x-data-grid";
+import ExcelJs from "exceljs"
 
 const GET_SCORELIST_QUERY = gql`
     query GetScorelist($id: Int!) {
@@ -179,6 +191,86 @@ const StripedDataGrid = styled(DataGrid)(({ theme }) => ({
         },
     },
 }));
+function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
+    const apiRef = useGridApiContext();
+
+    const { hideMenu } = props;
+    // Select rows and columns
+    const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);
+    const visibleColumnsField = gridVisibleColumnFieldsSelector(apiRef);
+
+    // Format the data. Here we only keep the value
+    let data: any[][] = [];
+    filteredSortedRowIds.map((id) => {
+        let row: any[] = [];
+        visibleColumnsField.forEach((field, i) => {
+            console.log(apiRef.current.getCellParams(id, field))
+            if (apiRef.current.getCellParams(id, field).field == "actions")
+                return
+            row.push(apiRef.current.getCellParams(id, field).value ?? "");
+        });
+        data.push(row);
+    });
+
+    return (
+        <MenuItem
+            onClick={() => {
+                const workbook = new ExcelJs.Workbook();
+                const sheet = workbook.addWorksheet('Stage');
+                sheet.addTable({
+                    name: 'table',
+                    ref: 'A1',
+                    columns: [{ name: 'ID' }, { name: 'Shooter' }, { name: 'A' }, { name: 'C' }, { name: 'D' }, { name: 'Popper' }, { name: 'Miss' }, { name: 'No-shoot' }, { name: 'Procedural Error' }, { name: 'Total Score' }, { name: 'Time' }, { name: 'Hit-Factor' }, { name: 'State' },],
+                    rows: data,
+                });
+                workbook.xlsx.writeBuffer().then((content) => {
+                    const link = document.createElement("a");
+                    const blobData = new Blob([content], {
+                        type: "application/vnd.ms-excel;charset=utf-8;"
+                    });
+                    let current_date = new Date();
+                    link.download = new Intl.DateTimeFormat('default', {
+                        dateStyle: 'full',
+                        timeStyle: 'full',
+                        hour12: true,
+
+                    }).format(current_date) + '.xlsx';
+                    link.href = URL.createObjectURL(blobData);
+                    link.click();
+                });
+                // const blob = new Blob([jsonString], {
+                //     type: 'text/json',
+                // });
+                // exportBlob(blob, 'DataGrid_demo.json');
+
+                // Hide the export menu after the export
+                hideMenu?.();
+            }}
+        >
+            Export excel
+        </MenuItem>
+    );
+}
+
+
+const csvOptions: GridCsvExportOptions = { delimiter: ';' };
+
+function CustomExportButton(props: ButtonProps) {
+    return (
+        <GridToolbarExportContainer {...props}>
+            <GridCsvExportMenuItem options={csvOptions} />
+            <JsonExportMenuItem />
+        </GridToolbarExportContainer>
+    );
+}
+function CustomToolbar(props: GridToolbarContainerProps) {
+    return (
+        <GridToolbarContainer {...props}>
+            <CustomExportButton />
+        </GridToolbarContainer>
+    );
+}
+
 
 export default function ScorelistPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
@@ -220,6 +312,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                         },
                     });
                 }}
+                disabled={scorelist.data?.getScorelist.isLocked}
             >
                 <Delete />
             </IconButton>
@@ -239,8 +332,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
             field: "Name",
             valueGetter: (params) => {
                 var result = params.row.shooter.name
-                console.log(params)
-                if (params.row.scoreState === "DQ") 
+                if (params.row.scoreState === "DQ")
                     result += "(DQ)"
                 if (params.row.scoreState === "DNF")
                     result += "(DNF)"
@@ -332,6 +424,25 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
             minWidth: parseInt(theme.spacing(11)),
         },
         {
+            field: "State",
+            valueGetter: (params) => {
+                let state: ScoreState = params.row.scoreState
+                switch (state) {
+                    case ScoreState.Dnf:
+                        return "DNF"
+                    case ScoreState.Dq:
+                        return "DQ"
+                    case ScoreState.Scored:
+                        return "Scored"
+                    case ScoreState.HaveNotScoredYet:
+                        return "Did not scored"
+                }
+            },
+            type: "number",
+            flex: 2,
+            minWidth: parseInt(theme.spacing(11)),
+        },
+        {
             field: "actions",
             type: "actions",
             headerName: "",
@@ -375,6 +486,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                         router.push(`${ROUTE_LIST[EROUTE_LIST.Scores].dir}/${v.row.id}`)
                     }}
                     pageSizeOptions={[5]}
+                    slots={{ toolbar: CustomToolbar }}
                     disableRowSelectionOnClick
                     getRowClassName={(params) => `super-app-theme--${params.row.scoreState}`}
                 />
