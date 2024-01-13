@@ -130,8 +130,8 @@ export default function RootLayout({
 								keepMounted: true, // Better open performance on mobile.
 							}}
 							sx={{
-								display: { xs: 'block', sm: 'none' },
-								'& .MuiDrawer-paper': { boxSizing: 'border-box', width: "50vw" },
+								display: { xs: 'block' },
+								'& .MuiDrawer-paper': { width: { xs: "50vw", sm: "30vw", md: "20vw" } },
 							}}
 						>
 							<ButtonGroup orientation="vertical" style={{ margin: 10 }}>
