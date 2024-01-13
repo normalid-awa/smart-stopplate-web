@@ -83,7 +83,7 @@ const themeOptions: ThemeOptions = createTheme({
 
 /* #region create Websocket link for subscription */
 const httpLink = new HttpLink({
-	uri: process.env.backendUrl,
+	uri: process.env.NEXT_PUBLIC_backendUrl,
 });
 
 // const sseLink = new ServerSentEventsLink({
@@ -91,7 +91,7 @@ const httpLink = new HttpLink({
 // });
 const wsLink = new GraphQLWsLink(
 	createClient({
-		url: process.env.wsBackendUrl as string,
+		url: process.env.NEXT_PUBLIC_wsBackendUrl as string,
 	})
 );
 const splitLink = split(
