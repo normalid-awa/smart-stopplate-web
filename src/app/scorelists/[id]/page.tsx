@@ -23,6 +23,10 @@ import {
     Stack,
     Typography,
     TypographyProps,
+    alpha,
+    darken,
+    gridClasses,
+    lighten,
     styled,
     useTheme,
 } from "@mui/material";
@@ -44,6 +48,7 @@ import {
 import AddShooterDialog from "./addShooterDialog";
 import { useRouter } from "next/navigation";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
+import { getBackgroundColor, getHoverBackgroundColor, getSelectedBackgroundColor, getSelectedHoverBackgroundColor } from "@/utils";
 
 const GET_SCORELIST_QUERY = gql`
     query GetScorelist($id: Int!) {
@@ -98,6 +103,80 @@ const StyledSpeedDial = styled(SpeedDial)(({ theme }) => ({
     "&.MuiSpeedDial-directionDown, &.MuiSpeedDial-directionRight": {
         top: theme.spacing(2),
         left: theme.spacing(2),
+    },
+}));
+
+
+
+const StripedDataGrid = styled(DataGrid)(({ theme }) => ({
+    '& .super-app-theme--DQ': {
+        backgroundColor: getBackgroundColor(theme.palette.error.main, theme.palette.mode),
+        '&:hover': {
+            backgroundColor: getHoverBackgroundColor(
+                theme.palette.error.main,
+                theme.palette.mode,
+            ),
+        },
+        '&.Mui-selected': {
+            backgroundColor: getSelectedBackgroundColor(
+                theme.palette.error.main,
+                theme.palette.mode,
+            ),
+            '&:hover': {
+                backgroundColor: getSelectedHoverBackgroundColor(
+                    theme.palette.error.main,
+                    theme.palette.mode,
+                ),
+            },
+        },
+    },
+    '& .super-app-theme--SCORED': {
+        backgroundColor: getBackgroundColor(
+            theme.palette.success.main,
+            theme.palette.mode,
+        ),
+        '&:hover': {
+            backgroundColor: getHoverBackgroundColor(
+                theme.palette.success.main,
+                theme.palette.mode,
+            ),
+        },
+        '&.Mui-selected': {
+            backgroundColor: getSelectedBackgroundColor(
+                theme.palette.success.main,
+                theme.palette.mode,
+            ),
+            '&:hover': {
+                backgroundColor: getSelectedHoverBackgroundColor(
+                    theme.palette.success.main,
+                    theme.palette.mode,
+                ),
+            },
+        },
+    },
+    '& .super-app-theme--DNF': {
+        backgroundColor: getBackgroundColor(
+            theme.palette.warning.main,
+            theme.palette.mode,
+        ),
+        '&:hover': {
+            backgroundColor: getHoverBackgroundColor(
+                theme.palette.warning.main,
+                theme.palette.mode,
+            ),
+        },
+        '&.Mui-selected': {
+            backgroundColor: getSelectedBackgroundColor(
+                theme.palette.warning.main,
+                theme.palette.mode,
+            ),
+            '&:hover': {
+                backgroundColor: getSelectedHoverBackgroundColor(
+                    theme.palette.warning.main,
+                    theme.palette.mode,
+                ),
+            },
+        },
     },
 }));
 
@@ -278,7 +357,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     You are currently scoring stage:{" "}
                     {scorelist.data.getScorelist.stage.name}
                 </h5>
-                <DataGrid
+                <StripedDataGrid
                     rows={scorelist.data.getScorelist.scores}
                     columns={columns}
                     initialState={{
@@ -295,6 +374,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     }}
                     pageSizeOptions={[5]}
                     disableRowSelectionOnClick
+                    getRowClassName={(params) => `super-app-theme--${params.row.scoreState}`}
                 />
             </Stack>
             <StyledSpeedDial
