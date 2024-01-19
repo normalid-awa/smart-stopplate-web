@@ -55,7 +55,7 @@ const GET_ALL_STAGES_QUERY = gql`
     }
 `;
 const STAGE_UPDATE_SUBSCRIPTION = gql`
-    subscription SubscribeToStageUpdate{
+    subscription {
         subscribeToStageUpdate
     }
 `;
@@ -86,13 +86,10 @@ export default function StagesPage() {
     const [editStage, setEditStage] = React.useState<Stage | undefined>();
 
     const all_stage_info = useQuery<Query>(GET_ALL_STAGES_QUERY);
-    const stage_update_subscription = useSubscription<Subscription>(STAGE_UPDATE_SUBSCRIPTION, {
+    useSubscription<Subscription>(STAGE_UPDATE_SUBSCRIPTION, {
         onData({ data }) {
-            console.log(data.data?.subscribeToStageUpdate)
             all_stage_info.refetch();
         },
-        onError: (err) => console.log("error", err),
-        shouldResubscribe: false,
     });
 
 
