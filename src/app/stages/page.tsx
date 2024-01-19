@@ -61,16 +61,16 @@ const STAGE_UPDATE_SUBSCRIPTION = gql`
 `;
 
 const DELETE_STAGE_MUTATION = gql`
-    mutation DeleteStage($ID: Int!) {
-        deleteStage(id: $ID) {
+    mutation DeleteStage($id: Int!) {
+        deleteStage(id: $id) {
             id
         }
     }
 `;
 
 const LOCK_STAGE_MUTATION = gql`
-    mutation LockStage($ID: Int!) {
-        lockStage(id: $ID) {
+    mutation LockStage($id: Int!) {
+        lockStage(id: $id) {
             id
         }
     }
