@@ -102,7 +102,7 @@ export default function StagesPage() {
                 return;
 
             delete_stage({
-                variables: { ID: props.row.id }
+                variables: { id: props.row.id }
             });
         }}>
             <Delete />
@@ -116,7 +116,7 @@ export default function StagesPage() {
                 return;
 
             lock_stage({
-                variables: { ID: props.row.id }
+                variables: { id: props.row.id }
             });
         }}>
             <Lock />
