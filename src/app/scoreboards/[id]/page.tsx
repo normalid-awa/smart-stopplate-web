@@ -205,7 +205,7 @@ export default function ScoreboardPage({ params }: { params: { id: string } }) {
             >
                 <Add />
             </Fab>
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={"sm"} fullWidth>
                 <DialogTitle>Add Scorelists</DialogTitle>
                 <DialogContentText>
                     <FormControl fullWidth>
