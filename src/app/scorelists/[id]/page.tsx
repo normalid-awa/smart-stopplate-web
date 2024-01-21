@@ -3,6 +3,7 @@ import { gql, useMutation, useQuery, useSubscription } from "@apollo/client";
 import {
     Box,
     Button,
+    ButtonGroup,
     ButtonProps,
     Card,
     Dialog,
@@ -47,6 +48,8 @@ import {
     useGridApiRef,
 } from "@mui/x-data-grid";
 import {
+    ArrowDropDown,
+    ArrowDropUp,
     Delete,
     Edit,
     PeopleOutlined,
@@ -103,6 +106,11 @@ const DELETE_SCORE_MUTATION = gql`
         deleteScore(id: $id) {
             id
         }
+    }
+`;
+const SWAP_SCORE_MUTATION = gql`
+    mutation SwapScoreId($id1: Int!, $id2: Int!){
+        swapScoreId(id1: $id1,id2: $id2)
     }
 `;
 
@@ -285,6 +293,10 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
     const [delete_score, delete_score_info] = useMutation(
         DELETE_SCORE_MUTATION
     );
+    const [swap_score, swap_score_info] = useMutation(
+        SWAP_SCORE_MUTATION
+    );
+
 
     React.useEffect(() => {
         scorelist.refetch()
@@ -318,6 +330,50 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
             </IconButton>
         );
     };
+    const SortingActionButton = (props: ActionButtonProps) => {
+        return (
+            <Stack direction="row">
+                <IconButton
+                    size="small"
+                    onClick={() => {
+                        let id = scorelist.data?.getScorelist.scores.findIndex((v) => v.id == props.row.id) ?? -1
+                        if (id - 1 < 0)
+                            return
+                        swap_score({
+                            variables: {
+                                id1: props.row.id,
+                                id2: scorelist.data?.getScorelist.scores[id - 1].id,
+                            }
+                        })
+                    }}
+                    disabled={scorelist.data?.getScorelist.isLocked}
+                >
+                    <ArrowDropUp />
+                </IconButton>
+                <IconButton
+                    size="small"
+                    onClick={() => {
+                        let id = scorelist.data?.getScorelist.scores.findIndex((v) => v.id == props.row.id) ?? -1
+                        if (id + 1 > (scorelist.data?.getScorelist.scores.length ?? 0) - 1)
+                            return
+                        swap_score({
+                            variables: {
+                                id1: props.row.id,
+                                id2: scorelist.data?.getScorelist.scores[id + 1].id,
+                            }
+                        })
+                    }}
+                    disabled={scorelist.data?.getScorelist.isLocked}
+                >
+                    <ArrowDropDown />
+                </IconButton>
+            </Stack>
+            // <ButtonGroup orientation="vertical">
+            //     <Button startIcon={<ArrowDropUp sx={{ p: 0, m: 0 }} />} sx={{ p: 0, m: 0 }}>Up</Button>
+            //     <Button startIcon={<ArrowDropDown sx={{ p: 0, m: 0 }} />} sx={{ p: 0, m: 0 }} >Down</Button>
+            // </ButtonGroup>
+        );
+    };
     const columns: GridColDef[] = [
         // {
         //     field: "ID",
@@ -336,7 +392,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
             cellClassName: "actions",
             flex: 1,
             getActions: ({ id, row }) => {
-                return [<DeleteActionButton row={row} />];
+                return [<SortingActionButton row={row} />];
             },
         },
         {
