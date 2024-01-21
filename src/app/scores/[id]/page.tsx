@@ -515,7 +515,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                             <TableHead>
                                 <TableRow>
                                     {columns.map((column) => (
-                                        <TableCell key={column.id}>
+                                        <TableCell key={column.id} align="center">
                                             {column.label}
                                         </TableCell>
                                     ))}
