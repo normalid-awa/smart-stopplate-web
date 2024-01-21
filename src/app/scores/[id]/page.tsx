@@ -254,7 +254,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     // #region
     const attrs = useLongPress(
         (event) => {
-            console.log(event);
             let data = papperData.slice();
             let param: {
                 id: number;
