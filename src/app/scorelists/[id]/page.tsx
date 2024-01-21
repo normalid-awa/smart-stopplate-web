@@ -319,14 +319,25 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         );
     };
     const columns: GridColDef[] = [
+        // {
+        //     field: "ID",
+        //     valueGetter: (params) => {
+        //         return params.row.id;
+        //     },
+        //     type: "number",
+        //     maxWidth: 1,
+        //     flex: 0.01,
+
+        // },
         {
-            field: "ID",
-            valueGetter: (params) => {
-                return params.row.id;
+            field: "actions_sort",
+            type: "actions",
+            headerName: "",
+            cellClassName: "actions",
+            flex: 1,
+            getActions: ({ id, row }) => {
+                return [<DeleteActionButton row={row} />];
             },
-            type: "number",
-            maxWidth: 1,
-            flex: 0.01,
         },
         {
             field: "Name",

@@ -127,6 +127,8 @@ const SET_SCORE_DNF = gql`
         }
     }
 `;
+
+
 const Item = styled(Paper)((theme) => ({
     padding: theme.theme.spacing(1),
 }));
@@ -145,6 +147,7 @@ interface Column {
     label: string;
     maxWidth?: number;
 }
+
 
 interface PaperTargetData {
     id: number;

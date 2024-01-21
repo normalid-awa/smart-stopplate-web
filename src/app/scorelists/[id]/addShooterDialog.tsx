@@ -76,12 +76,15 @@ export default function AddShooterDialog(props: AddShooterDialog) {
         <DialogActions>
             <Button onClick={props.onClose}>Cancel</Button>
             <Button onClick={async () => {
-                for (let v in selectedShooter) {
+                let id_list = selectedShooter.map((v) => {
+                    return all_shooter.data?.getAllShooters[v]?.id ?? 1;
+                })
+                for (let v in id_list) {
                     await new Promise<void>((resolve, rejecct) => {
                         create_score({
                             variables: {
                                 scorelistId: props.scorelistId,
-                                shooterId: all_shooter.data?.getAllShooters[v]?.id
+                                shooterId: id_list[v]
                             },
                             onCompleted(data, clientOptions) {
                                 props.onClose()
