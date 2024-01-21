@@ -1,5 +1,5 @@
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { Button, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import { Button, Checkbox, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, ListItemText, MenuItem, Select } from "@mui/material";
 import { Query } from "@/gql_dto";
 import React from "react";
 
@@ -32,7 +32,7 @@ export default function AddShooterDialog(props: AddShooterDialog) {
     const all_shooter = useQuery<Query>(GET_ALL_SHOOTERS_QUERY);
     const [create_score, create_score_info] = useMutation<Query>(CREATE_SCORE_MUTATION);
 
-    const [selectedShooter, setSelectedShooter] = React.useState();
+    const [selectedShooter, setSelectedShooter] = React.useState<number[]>([]);
 
     if (all_shooter.loading)
         return <pre>Loading...</pre>
@@ -50,13 +50,24 @@ export default function AddShooterDialog(props: AddShooterDialog) {
                 <Select
                     value={selectedShooter}
                     label="Shooter"
+                    multiple
+                    renderValue={(selected) => {
+                        let name_list = selected.map((v) => {
+                            return all_shooter.data?.getAllShooters[v]?.name ?? "";
+                        })
+                        return name_list.join(", ");
+                    }}
                     onChange={(v) => {
-                        setSelectedShooter(parseInt(v.target.value as string))
+                        setSelectedShooter(v.target.value)
                     }}
                 >
-                    {all_shooter.data.getAllShooters.map((v) =>
+                    {all_shooter.data.getAllShooters.map((v, i) =>
                         v ?
-                            <MenuItem value={v.id} key={v.id}>{v.name}</MenuItem>
+                            <MenuItem key={v.id} value={i}>
+                                <Checkbox checked={selectedShooter.indexOf(i) > -1} />
+                                <ListItemText primary={v.name} />
+                            </MenuItem>
+                            // <MenuItem value={v.id} key={v.id}>{v.name}</MenuItem>
                             : <></>
                     )}
                 </Select>
@@ -64,19 +75,25 @@ export default function AddShooterDialog(props: AddShooterDialog) {
         </DialogContent>
         <DialogActions>
             <Button onClick={props.onClose}>Cancel</Button>
-            <Button onClick={() => {
-                create_score({
-                    variables: {
-                        scorelistId: props.scorelistId,
-                        shooterId: selectedShooter
-                    },
-                    onCompleted(data, clientOptions) {
-                        props.onClose()
-                    },
-                    onError(error, clientOptions) {
-                        alert("Fail to add shooter!")
-                    },
-                })
+            <Button onClick={async () => {
+                for (let v in selectedShooter) {
+                    await new Promise<void>((resolve, rejecct) => {
+                        create_score({
+                            variables: {
+                                scorelistId: props.scorelistId,
+                                shooterId: all_shooter.data?.getAllShooters[v]?.id
+                            },
+                            onCompleted(data, clientOptions) {
+                                props.onClose()
+                                resolve();
+                            },
+                            onError(error, clientOptions) {
+                                alert("Fail to add shooter!")
+                                rejecct();
+                            },
+                        })
+                    })
+                }
             }} autoFocus>
                 Add
             </Button>

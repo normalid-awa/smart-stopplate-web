@@ -263,14 +263,14 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             setPapperData(data);
         },
         {
-            threshold: 500,
+            threshold: 1000,
         }
     );
     function on_cell_click(id: number, zone: string) {
         let ts_zone =
             zone as "id"; /* this is fake, to cancell out the ts error :) */
         let data = papperData.slice();
-        if (data[id].a + data[id].c + data[id].d + data[id].m >= 2) return;
+        if (data[id].a + data[id].c + data[id].d + data[id].m >= 2 && zone !== "ns") return;
         data[id][ts_zone] = data[id][ts_zone] + 1;
         setPapperData(data);
     }

@@ -517,6 +517,8 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     setDialogOpen(false);
                     close_all_promt();
                 }}
+                fullWidth
+                maxWidth="md"
             >
                 {addShooterOpen ? (
                     <AddShooterDialog
