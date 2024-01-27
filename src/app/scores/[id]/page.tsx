@@ -632,31 +632,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     fullWidth
                                     variant="contained"
                                     color="error"
-                                    onClick={() => {
-                                        if (
-                                            !confirm(
-                                                "Are you sure you wanna dq(disqualified) this shooter?"
-                                            )
-                                        )
-                                            return;
-                                        let v = prompt(
-                                            "Let CRO/RO to type DQ to process dq(disqualified) action"
-                                        )?.toLocaleUpperCase();
-                                        if (v != "DQ") {
-                                            alert("Action cancelled");
-                                            return;
-                                        }
-                                        set_dq({
-                                            variables: { id },
-                                            onCompleted(data, clientOptions) {
-                                                alert("DQed");
-                                                router.back();
-                                            },
-                                            onError(error, clientOptions) {
-                                                alert("Fail to DQ due to server error");
-                                            },
-                                        });
-                                    }}
                                 >
                                     DQ
                                 </Button>
@@ -666,26 +641,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     fullWidth
                                     variant="contained"
                                     color="warning"
-                                    onClick={() => {
-                                        if (
-                                            !confirm(
-                                                "Are you sure you wanna DNF(Did not finish) this shooter?"
-                                            )
-                                        )
-                                            return;
-                                        set_dnf({
-                                            variables: { id },
-                                            onCompleted(data, clientOptions) {
-                                                alert("DNFed");
-                                                router.back();
-                                            },
-                                            onError(error, clientOptions) {
-                                                alert(
-                                                    "Fail to DNF due to server error"
-                                                );
-                                            },
-                                        });
-                                    }}
                                 >
                                     DNF
                                 </Button>
