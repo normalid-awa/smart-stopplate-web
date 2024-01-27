@@ -161,10 +161,10 @@ export default function RootLayout({
 	return (
 		<html lang="en" id="ROOTHTML">
 			<head>
-				<meta
+				{/* <meta
 					httpEquiv="Content-Security-Policy"
 					content="upgrade-insecure-requests"
-				/>
+				/> */}
 			</head>
 			<body className={inter.className}>
 				{/* {fullscreenButton ? <Button
