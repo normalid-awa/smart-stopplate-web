@@ -58,7 +58,7 @@ export default function AddShooterDialog(props: AddShooterDialog) {
                         return name_list.join(", ");
                     }}
                     onChange={(v) => {
-                        setSelectedShooter(v.target.value)
+                        setSelectedShooter(v.target.value as any)
                     }}
                 >
                     {all_shooter.data.getAllShooters.map((v, i) =>
