@@ -16,6 +16,7 @@
         "@fontsource/roboto": "^5.0.8",
         "@graphql-sse/apollo-client": "^0.0.19",
         "@mui/icons-material": "^5.15.1",
+        "@mui/lab": "^5.0.0-alpha.162",
         "@mui/material": "^5.15.2",
         "@mui/x-data-grid": "^6.18.6",
         "@mui/x-data-grid-generator": "^6.18.6",

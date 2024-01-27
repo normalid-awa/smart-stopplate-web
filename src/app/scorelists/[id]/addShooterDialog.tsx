@@ -16,8 +16,8 @@ const GET_ALL_SHOOTERS_QUERY = gql`
 `;
 
 const CREATE_SCORE_MUTATION = gql`
-    mutation CreateScore($shooterId: Int!, $scorelistId: Int!) {
-        createScore(shooterId: $shooterId, scorelistId: $scorelistId) {
+    mutation CreateScore($shooterId: Int!, $scorelistId: Int!, $round: Int!) {
+        createScore(shooterId: $shooterId, scorelistId: $scorelistId, round: $round) {
             id
         }
     }
@@ -25,7 +25,8 @@ const CREATE_SCORE_MUTATION = gql`
 
 export interface AddShooterDialog {
     onClose: () => void,
-    scorelistId: number
+    scorelistId: number,
+    round: number,
 }
 
 export default function AddShooterDialog(props: AddShooterDialog) {
@@ -84,7 +85,8 @@ export default function AddShooterDialog(props: AddShooterDialog) {
                         create_score({
                             variables: {
                                 scorelistId: props.scorelistId,
-                                shooterId: id_list[v]
+                                shooterId: id_list[v],
+                                round: props.round,
                             },
                             onCompleted(data, clientOptions) {
                                 props.onClose()

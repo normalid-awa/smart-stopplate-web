@@ -67,6 +67,7 @@ export type Mutation = {
     resetScore: Score;
     setScoreDNF: Score;
     setScoreDQ: Score;
+    swapScoreId?: Maybe<Scalars["Boolean"]["output"]>;
     updateScore: Score;
     updateScoreboard: Scoreboard;
     updateShooter: Shooter;
@@ -157,6 +158,11 @@ export type MutationSetScoreDqArgs = {
     id: Scalars["Int"]["input"];
 };
 
+export type MutationSwapScoreIdArgs = {
+    id1: Scalars["Int"]["input"];
+    id2: Scalars["Int"]["input"];
+};
+
 export type MutationUpdateScoreArgs = {
     alphaZone: Scalars["Int"]["input"];
     charlieZone: Scalars["Int"]["input"];
@@ -200,6 +206,7 @@ export type Query = {
     getScore: Score;
     getScoreboard: Scoreboard;
     getScorelist: Scorelist;
+    getScores: Array<Score>;
     getShooter?: Maybe<Shooter>;
     getStage: Stage;
 };
@@ -214,6 +221,13 @@ export type QueryGetScoreboardArgs = {
 
 export type QueryGetScorelistArgs = {
     id: Scalars["Int"]["input"];
+};
+
+export type QueryGetScoresArgs = {
+    round?: InputMaybe<Scalars["Int"]["input"]>;
+    scoreState?: InputMaybe<ScoreState>;
+    scorelistId?: InputMaybe<Scalars["Int"]["input"]>;
+    shooterId?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
 export type QueryGetShooterArgs = {
@@ -269,6 +283,7 @@ export type Scorelist = {
     createdAt: Scalars["DateTime"]["output"];
     id: Scalars["Int"]["output"];
     isLocked: Scalars["Boolean"]["output"];
+    rounds: Scalars["Int"]["output"];
     scoreboard: Scoreboard;
     scores: Array<Score>;
     stage: Stage;
@@ -587,6 +602,12 @@ export type MutationResolvers<
         ContextType,
         RequireFields<MutationSetScoreDqArgs, "id">
     >;
+    swapScoreId?: Resolver<
+        Maybe<ResolversTypes["Boolean"]>,
+        ParentType,
+        ContextType,
+        RequireFields<MutationSwapScoreIdArgs, "id1" | "id2">
+    >;
     updateScore?: Resolver<
         ResolversTypes["Score"],
         ParentType,
@@ -680,6 +701,12 @@ export type QueryResolvers<
         ContextType,
         RequireFields<QueryGetScorelistArgs, "id">
     >;
+    getScores?: Resolver<
+        Array<ResolversTypes["Score"]>,
+        ParentType,
+        ContextType,
+        Partial<QueryGetScoresArgs>
+    >;
     getShooter?: Resolver<
         Maybe<ResolversTypes["Shooter"]>,
         ParentType,
@@ -744,6 +771,7 @@ export type ScorelistResolvers<
     createdAt?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
     id?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
     isLocked?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+    rounds?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
     scoreboard?: Resolver<
         ResolversTypes["Scoreboard"],
         ParentType,

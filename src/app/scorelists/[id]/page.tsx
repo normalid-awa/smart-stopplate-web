@@ -23,6 +23,8 @@ import {
     SpeedDialAction,
     SpeedDialIcon,
     Stack,
+    Tab,
+    Tabs,
     Typography,
     TypographyProps,
     alpha,
@@ -56,14 +58,22 @@ import {
     PersonAdd,
     Queue,
 } from "@mui/icons-material";
+import TabContext from "@mui/lab/TabContext";
+import TabList from "@mui/lab/TabList";
+import TabPanel from "@mui/lab/TabPanel";
 import AddShooterDialog from "./addShooterDialog";
 import { useRouter } from "next/navigation";
 import { EROUTE_LIST, ROUTE_LIST } from "@/constant";
-import { getBackgroundColor, getHoverBackgroundColor, getSelectedBackgroundColor, getSelectedHoverBackgroundColor } from "@/utils";
+import {
+    getBackgroundColor,
+    getHoverBackgroundColor,
+    getSelectedBackgroundColor,
+    getSelectedHoverBackgroundColor,
+} from "@/utils";
 import { GridApi } from "@mui/x-data-grid-pro";
 import { GridExportMenuItemProps } from "@mui/x-data-grid";
 import { GridToolbarContainer } from "@mui/x-data-grid";
-import ExcelJs from "exceljs"
+import ExcelJs from "exceljs";
 
 const GET_SCORELIST_QUERY = gql`
     query GetScorelist($id: Int!) {
@@ -74,7 +84,9 @@ const GET_SCORELIST_QUERY = gql`
             stage {
                 name
             }
+            rounds
             scores {
+                round
                 id
                 createdAt
                 alphaZone
@@ -96,11 +108,25 @@ const GET_SCORELIST_QUERY = gql`
     }
 `;
 
+const ADD_ROUND_MUTATION = gql`
+    mutation AddNewRound($id:Int!){
+        addNewRound(id: $id) {
+            rounds
+        }
+    }
+`;
+
 const SUBSCRIBE_TO_SCORE_UPDATE = gql`
     subscription {
         subscribeToScoreUpdate
     }
 `;
+const SUBSCRIBE_TO_SCORELIST_UPDATE = gql`
+    subscription {
+        subscribeToScorelistUpdate
+    }
+`;
+
 const DELETE_SCORE_MUTATION = gql`
     mutation DeleteScore($id: Int!) {
         deleteScore(id: $id) {
@@ -109,8 +135,8 @@ const DELETE_SCORE_MUTATION = gql`
     }
 `;
 const SWAP_SCORE_MUTATION = gql`
-    mutation SwapScoreId($id1: Int!, $id2: Int!){
-        swapScoreId(id1: $id1,id2: $id2)
+    mutation SwapScoreId($id1: Int!, $id2: Int!) {
+        swapScoreId(id1: $id1, id2: $id2)
     }
 `;
 
@@ -126,74 +152,75 @@ const StyledSpeedDial = styled(SpeedDial)(({ theme }) => ({
     },
 }));
 
-
-
 const StripedDataGrid = styled(DataGrid)(({ theme }) => ({
-    '& .super-app-theme--DQ': {
-        backgroundColor: getBackgroundColor(theme.palette.error.main, theme.palette.mode),
-        '&:hover': {
+    "& .super-app-theme--DQ": {
+        backgroundColor: getBackgroundColor(
+            theme.palette.error.main,
+            theme.palette.mode
+        ),
+        "&:hover": {
             backgroundColor: getHoverBackgroundColor(
                 theme.palette.error.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
         },
-        '&.Mui-selected': {
+        "&.Mui-selected": {
             backgroundColor: getSelectedBackgroundColor(
                 theme.palette.error.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
-            '&:hover': {
+            "&:hover": {
                 backgroundColor: getSelectedHoverBackgroundColor(
                     theme.palette.error.main,
-                    theme.palette.mode,
+                    theme.palette.mode
                 ),
             },
         },
     },
-    '& .super-app-theme--SCORED': {
+    "& .super-app-theme--SCORED": {
         backgroundColor: getBackgroundColor(
             theme.palette.success.main,
-            theme.palette.mode,
+            theme.palette.mode
         ),
-        '&:hover': {
+        "&:hover": {
             backgroundColor: getHoverBackgroundColor(
                 theme.palette.success.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
         },
-        '&.Mui-selected': {
+        "&.Mui-selected": {
             backgroundColor: getSelectedBackgroundColor(
                 theme.palette.success.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
-            '&:hover': {
+            "&:hover": {
                 backgroundColor: getSelectedHoverBackgroundColor(
                     theme.palette.success.main,
-                    theme.palette.mode,
+                    theme.palette.mode
                 ),
             },
         },
     },
-    '& .super-app-theme--DNF': {
+    "& .super-app-theme--DNF": {
         backgroundColor: getBackgroundColor(
             theme.palette.warning.main,
-            theme.palette.mode,
+            theme.palette.mode
         ),
-        '&:hover': {
+        "&:hover": {
             backgroundColor: getHoverBackgroundColor(
                 theme.palette.warning.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
         },
-        '&.Mui-selected': {
+        "&.Mui-selected": {
             backgroundColor: getSelectedBackgroundColor(
                 theme.palette.warning.main,
-                theme.palette.mode,
+                theme.palette.mode
             ),
-            '&:hover': {
+            "&:hover": {
                 backgroundColor: getSelectedHoverBackgroundColor(
                     theme.palette.warning.main,
-                    theme.palette.mode,
+                    theme.palette.mode
                 ),
             },
         },
@@ -212,9 +239,9 @@ function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
     filteredSortedRowIds.map((id) => {
         let row: any[] = [];
         visibleColumnsField.forEach((field, i) => {
-            console.log(apiRef.current.getCellParams(id, field))
+            console.log(apiRef.current.getCellParams(id, field));
             if (apiRef.current.getCellParams(id, field).field == "actions")
-                return
+                return;
             row.push(apiRef.current.getCellParams(id, field).value ?? "");
         });
         data.push(row);
@@ -224,25 +251,39 @@ function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
         <MenuItem
             onClick={() => {
                 const workbook = new ExcelJs.Workbook();
-                const sheet = workbook.addWorksheet('Stage');
+                const sheet = workbook.addWorksheet("Stage");
                 sheet.addTable({
-                    name: 'table',
-                    ref: 'A1',
-                    columns: [{ name: 'ID' }, { name: 'Shooter' }, { name: 'A' }, { name: 'C' }, { name: 'D' }, { name: 'Popper' }, { name: 'Miss' }, { name: 'No-shoot' }, { name: 'Procedural Error' }, { name: 'Total Score' }, { name: 'Time' }, { name: 'Hit-Factor' }, { name: 'State' },],
+                    name: "table",
+                    ref: "A1",
+                    columns: [
+                        { name: "ID" },
+                        { name: "Shooter" },
+                        { name: "A" },
+                        { name: "C" },
+                        { name: "D" },
+                        { name: "Popper" },
+                        { name: "Miss" },
+                        { name: "No-shoot" },
+                        { name: "Procedural Error" },
+                        { name: "Total Score" },
+                        { name: "Time" },
+                        { name: "Hit-Factor" },
+                        { name: "State" },
+                    ],
                     rows: data,
                 });
                 workbook.xlsx.writeBuffer().then((content) => {
                     const link = document.createElement("a");
                     const blobData = new Blob([content], {
-                        type: "application/vnd.ms-excel;charset=utf-8;"
+                        type: "application/vnd.ms-excel;charset=utf-8;",
                     });
                     let current_date = new Date();
-                    link.download = new Intl.DateTimeFormat('default', {
-                        dateStyle: 'full',
-                        timeStyle: 'full',
-                        hour12: true,
-
-                    }).format(current_date) + '.xlsx';
+                    link.download =
+                        new Intl.DateTimeFormat("default", {
+                            dateStyle: "full",
+                            timeStyle: "full",
+                            hour12: true,
+                        }).format(current_date) + ".xlsx";
                     link.href = URL.createObjectURL(blobData);
                     link.click();
                 });
@@ -260,8 +301,7 @@ function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
     );
 }
 
-
-const csvOptions: GridCsvExportOptions = { delimiter: ';' };
+const csvOptions: GridCsvExportOptions = { delimiter: ";" };
 
 function CustomExportButton(props: ButtonProps) {
     return (
@@ -279,28 +319,31 @@ function CustomToolbar(props: GridToolbarContainerProps) {
     );
 }
 
-
 export default function ScorelistPage({ params }: { params: { id: string } }) {
     const id = parseInt(params.id);
     const scorelist = useQuery<Query>(GET_SCORELIST_QUERY, {
         variables: { id },
     });
-    const _ = useSubscription<Query>(SUBSCRIBE_TO_SCORE_UPDATE, {
+    useSubscription<Query>(SUBSCRIBE_TO_SCORE_UPDATE, {
         onData(options) {
             scorelist.refetch();
         },
     });
+    useSubscription<Query>(SUBSCRIBE_TO_SCORELIST_UPDATE, {
+        onData(options) {
+            scorelist.refetch();
+        },
+    });
+
     const [delete_score, delete_score_info] = useMutation(
         DELETE_SCORE_MUTATION
     );
-    const [swap_score, swap_score_info] = useMutation(
-        SWAP_SCORE_MUTATION
-    );
-
+    const [swap_score, swap_score_info] = useMutation(SWAP_SCORE_MUTATION);
+    const [add_round, add_round_info] = useMutation(ADD_ROUND_MUTATION);
 
     React.useEffect(() => {
-        scorelist.refetch()
-    }, [])
+        scorelist.refetch();
+    }, []);
 
     const [dialogOpen, setDialogOpen] = React.useState(false);
     const [addShooterOpen, setAddShooterOpen] = React.useState(false);
@@ -336,15 +379,18 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                 <IconButton
                     size="small"
                     onClick={() => {
-                        let id = scorelist.data?.getScorelist.scores.findIndex((v) => v.id == props.row.id) ?? -1
-                        if (id - 1 < 0)
-                            return
+                        let id =
+                            scorelist.data?.getScorelist.scores.findIndex(
+                                (v) => v.id == props.row.id
+                            ) ?? -1;
+                        if (id - 1 < 0) return;
                         swap_score({
                             variables: {
                                 id1: props.row.id,
-                                id2: scorelist.data?.getScorelist.scores[id - 1].id,
-                            }
-                        })
+                                id2: scorelist.data?.getScorelist.scores[id - 1]
+                                    .id,
+                            },
+                        });
                     }}
                     disabled={scorelist.data?.getScorelist.isLocked}
                 >
@@ -353,15 +399,23 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                 <IconButton
                     size="small"
                     onClick={() => {
-                        let id = scorelist.data?.getScorelist.scores.findIndex((v) => v.id == props.row.id) ?? -1
-                        if (id + 1 > (scorelist.data?.getScorelist.scores.length ?? 0) - 1)
-                            return
+                        let id =
+                            scorelist.data?.getScorelist.scores.findIndex(
+                                (v) => v.id == props.row.id
+                            ) ?? -1;
+                        if (
+                            id + 1 >
+                            (scorelist.data?.getScorelist.scores.length ?? 0) -
+                            1
+                        )
+                            return;
                         swap_score({
                             variables: {
                                 id1: props.row.id,
-                                id2: scorelist.data?.getScorelist.scores[id + 1].id,
-                            }
-                        })
+                                id2: scorelist.data?.getScorelist.scores[id + 1]
+                                    .id,
+                            },
+                        });
                     }}
                     disabled={scorelist.data?.getScorelist.isLocked}
                 >
@@ -388,11 +442,9 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         {
             field: "Name",
             valueGetter: (params) => {
-                var result = params.row.shooter.name
-                if (params.row.scoreState === "DQ")
-                    result += "(DQ)"
-                if (params.row.scoreState === "DNF")
-                    result += "(DNF)"
+                var result = params.row.shooter.name;
+                if (params.row.scoreState === "DQ") result += "(DQ)";
+                if (params.row.scoreState === "DNF") result += "(DNF)";
                 return result;
             },
             type: "string",
@@ -483,16 +535,16 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         {
             field: "State",
             valueGetter: (params) => {
-                let state: ScoreState = params.row.scoreState
+                let state: ScoreState = params.row.scoreState;
                 switch (state) {
                     case ScoreState.Dnf:
-                        return "DNF"
+                        return "DNF";
                     case ScoreState.Dq:
-                        return "DQ"
+                        return "DQ";
                     case ScoreState.Scored:
-                        return "Scored"
+                        return "Scored";
                     case ScoreState.HaveNotScoredYet:
-                        return "Did not scored"
+                        return "Did not scored";
                 }
             },
             type: "number",
@@ -516,58 +568,104 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         setAddShooterOpen(false);
     }
 
+    const [round, setRound] = React.useState(1);
+
     if (scorelist.loading) return <pre>Loading...</pre>;
     if (scorelist.error)
         return <pre>Error: {JSON.stringify(scorelist.error)}</pre>;
     if (!scorelist.data) return <pre>No Data</pre>;
     return (
         <>
-            <Stack divider={<Divider />} gap={2}>
-                <h5>
-                    You are currently scoring stage:{" "}
-                    {scorelist.data.getScorelist.stage.name}
-                </h5>
-                <StripedDataGrid
-                    rows={scorelist.data.getScorelist.scores}
-                    columns={columns}
-                    initialState={{
-                        pagination: {
-                            paginationModel: {
-                                pageSize: 50,
+            <h5>
+                You are currently scoring stage:{" "}
+                {scorelist.data.getScorelist.stage.name}
+            </h5>
+            <Box sx={{ width: "100%" }}>
+                <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                    <Tabs
+                        value={round}
+                        onChange={(_, v) => setRound(v)}
+                        aria-label="basic tabs example"
+                    >
+                        {((
+                            () => {
+                                let tabs = [];
+                                for (
+                                    let index = 0;
+                                    index < scorelist.data.getScorelist.rounds;
+                                    index++
+                                ) {
+                                    tabs.push(<Tab label={`Round ${index + 1}`} />)
+                                }
+                                return tabs
+                            })())}
+                    </Tabs>
+                </Box>
+                {/* <CustomTabPanel value={value} index={0}>
+                    Item One
+                </CustomTabPanel>
+                <CustomTabPanel value={value} index={1}>
+                    Item Two
+                </CustomTabPanel>
+                <CustomTabPanel value={value} index={2}>
+                    Item Three
+                </CustomTabPanel> */}
+                <Stack divider={<Divider />} gap={2}>
+                    <StripedDataGrid
+                        rows={scorelist.data.getScorelist.scores.filter(
+                            (v) => v.round == round + 1
+                        )}
+                        columns={columns}
+                        initialState={{
+                            pagination: {
+                                paginationModel: {
+                                    pageSize: 50,
+                                },
                             },
-                        },
-                    }}
-                    onCellClick={(v) => {
-                        if (v.colDef.type == "actions")
-                            return
-                        router.push(`${ROUTE_LIST[EROUTE_LIST.Scores].dir}/${v.row.id}`)
-                    }}
-                    pageSizeOptions={[5]}
-                    slots={{ toolbar: CustomToolbar }}
-                    disableRowSelectionOnClick
-                    getRowClassName={(params) => `super-app-theme--${params.row.scoreState}`}
-                />
-            </Stack>
-            <StyledSpeedDial
-                ariaLabel="SpeedDial playground example"
-                icon={<SpeedDialIcon />}
-                direction={"up"}
-            >
-                <SpeedDialAction
-                    icon={<PersonAdd />}
-                    tooltipOpen
-                    tooltipTitle={"Add shooter"}
-                    onClick={() => {
-                        setDialogOpen(true);
-                        setAddShooterOpen(true);
-                    }}
-                />
-                <SpeedDialAction
-                    icon={<Queue />}
-                    tooltipOpen
-                    tooltipTitle={"Add round"}
-                />
-            </StyledSpeedDial>
+                        }}
+                        onCellClick={(v) => {
+                            if (v.colDef.type == "actions") return;
+                            router.push(
+                                `${ROUTE_LIST[EROUTE_LIST.Scores].dir}/${v.row.id
+                                }`
+                            );
+                        }}
+                        pageSizeOptions={[5]}
+                        slots={{ toolbar: CustomToolbar }}
+                        disableRowSelectionOnClick
+                        getRowClassName={(params) =>
+                            `super-app-theme--${params.row.scoreState}`
+                        }
+                    />
+                </Stack>
+                <StyledSpeedDial
+                    ariaLabel="SpeedDial playground example"
+                    icon={<SpeedDialIcon />}
+                    direction={"up"}
+                >
+                    <SpeedDialAction
+                        icon={<PersonAdd />}
+                        tooltipOpen
+                        tooltipTitle={"Add shooter"}
+                        onClick={() => {
+                            setDialogOpen(true);
+                            setAddShooterOpen(true);
+                        }}
+                    />
+                    <SpeedDialAction
+                        icon={<Queue />}
+                        tooltipOpen
+                        tooltipTitle={"Add round"}
+                        onClick={() => {
+                            add_round({
+                                variables: {
+                                    id: id
+                                }
+                            })
+                        }}
+                    />
+                </StyledSpeedDial>
+            </Box>
             <Dialog
                 open={dialogOpen}
                 onClose={() => {
@@ -583,6 +681,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                             setDialogOpen(false);
                             close_all_promt();
                         }}
+                        round={round + 1}
                         scorelistId={id}
                     />
                 ) : (
