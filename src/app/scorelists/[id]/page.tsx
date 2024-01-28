@@ -568,7 +568,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         setAddShooterOpen(false);
     }
 
-    const [round, setRound] = React.useState(1);
+    const [round, setRound] = React.useState(0);
 
     if (scorelist.loading) return <pre>Loading...</pre>;
     if (scorelist.error)
@@ -585,7 +585,6 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     <Tabs
                         value={round}
                         onChange={(_, v) => setRound(v)}
-                        aria-label="basic tabs example"
                     >
                         {((
                             () => {

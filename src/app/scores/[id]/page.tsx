@@ -31,6 +31,7 @@ import React from "react";
 import { useLongPress } from "@uidotdev/usehooks";
 import { useRouter } from "next/navigation";
 import TimerPage from "@/app/timer/page";
+import DQDialog from "./setDqDialog";
 
 const GET_SCORE_QUERY = gql`
     query GetScore($id: Int!) {
@@ -370,6 +371,8 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         setPapperData(pappers);
     }, [score]);
 
+    const [dqDialog, setDqDialog] = React.useState(false);
+
     if (score.loading) return <pre>Loading...</pre>;
     if (score.error) return <pre>{JSON.stringify(score.error)}</pre>;
     if (!score.data) return <pre>No data</pre>;
@@ -632,6 +635,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     fullWidth
                                     variant="contained"
                                     color="error"
+                                    onClick={() => setDqDialog(true)}
                                 >
                                     DQ
                                 </Button>
@@ -641,6 +645,26 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     fullWidth
                                     variant="contained"
                                     color="warning"
+                                    onClick={() => {
+                                        if (
+                                            !confirm(
+                                                "Are you sure you wanna DNF(Did not finish) this shooter?"
+                                            )
+                                        )
+                                            return;
+                                        set_dnf({
+                                            variables: { id },
+                                            onCompleted(data, clientOptions) {
+                                                alert("DNFed");
+                                                router.back();
+                                            },
+                                            onError(error, clientOptions) {
+                                                alert(
+                                                    "Fail to DNF due to server error"
+                                                );
+                                            },
+                                        });
+                                    }}
                                 >
                                     DNF
                                 </Button>
@@ -673,6 +697,13 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             </Container>
             <Dialog open={timerPrompt} onClose={() => setTimerPrompt(false)}>
                 <TimerPage onAssign={onTimerAssign} />
+            </Dialog>
+
+            <Dialog open={dqDialog} onClose={() => setDqDialog(false)} fullWidth maxWidth="md">
+                <DQDialog onClose={() => {
+                    setDqDialog(false)
+                    router.back()
+                }} scoreId={score.data.getScore.id} />
             </Dialog>
         </>
     );
