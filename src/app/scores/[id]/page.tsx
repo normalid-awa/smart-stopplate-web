@@ -32,6 +32,7 @@ import { useLongPress } from "@uidotdev/usehooks";
 import { useRouter } from "next/navigation";
 import TimerPage from "@/app/timer/page";
 import DQDialog from "./setDqDialog";
+import ProErrorDialog, { ProErrorRecord } from "./proErrorDialog";
 
 const GET_SCORE_QUERY = gql`
     query GetScore($id: Int!) {
@@ -61,7 +62,7 @@ const GET_SCORE_QUERY = gql`
 `;
 
 const ASSIGN_SCORE_MUTATION = gql`
-    mutation AssignScore(
+    mutation UpdateScore(
         $id: Int!
         $alphaZone: Int!
         $charlieZone: Int!
@@ -72,7 +73,7 @@ const ASSIGN_SCORE_MUTATION = gql`
         $proError: Int!
         $time: Float!
     ) {
-        assignScore(
+        updateScore(
             id: $id
             alphaZone: $alphaZone
             charlieZone: $charlieZone
@@ -169,11 +170,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     const [papperData, setPapperData] = React.useState<PaperTargetData[]>([]);
     const [assign_score, assign_score_] = useMutation(ASSIGN_SCORE_MUTATION);
     const [update_score, update_score_] = useMutation(UPDATE_SCORE_MUTATION);
-    const [set_dq, set_dq_] = useMutation(SET_SCORE_DQ);
     const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF);
 
     const [time, setTime] = React.useState(0);
-    const [pro, setPro] = React.useState(0);
+    const [pro, setPro] = React.useState<ProErrorRecord[]>([]);
     const [popper, setPopper] = React.useState(0);
 
     const theme = useTheme();
@@ -372,10 +372,12 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     }, [score]);
 
     const [dqDialog, setDqDialog] = React.useState(false);
+    const [proErrorDialog, setProErrorDialog] = React.useState(false);
 
     if (score.loading) return <pre>Loading...</pre>;
     if (score.error) return <pre>{JSON.stringify(score.error)}</pre>;
     if (!score.data) return <pre>No data</pre>;
+
     // #endregion
     return (
         <>
@@ -411,48 +413,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         }}
                                     />
                                     <IconButton children={<AvTimer />} onClick={openTimer} />
-                                </Stack>
-                            </Grid>
-                        </Grid>
-                        <Grid item container xs={12} sm={6}>
-                            <Grid item xs={5}>
-                                <Stack
-                                    alignItems={"center"}
-                                    direction={"row"}
-                                    height={"100%"}
-                                >
-                                    <p>Pro error:</p>
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={7}>
-                                <Stack alignItems={"center"} direction={"row"}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="Pro error"
-                                        value={pro}
-                                        onChange={(v) =>
-                                            setPro(parseFloat(v.target.value))
-                                        }
-                                        inputProps={{
-                                            step: 1,
-                                            min: 0,
-                                            type: "number",
-                                            "aria-labelledby": "input-slider",
-                                        }}
-                                    />
-                                    <Stack>
-                                        <IconButton onClick={() => setPro(pro + 1)}>
-                                            <Add />
-                                        </IconButton>
-                                        <IconButton
-                                            onClick={() =>
-                                                setPro(pro - (pro > 0 ? 1 : 0))
-                                            }
-                                        >
-                                            <Remove />
-                                        </IconButton>
-                                    </Stack>
                                 </Stack>
                             </Grid>
                         </Grid>
@@ -513,6 +473,49 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     </Stack>
                                 </Stack>
                             </Grid>
+                        </Grid>
+                        <Grid item container xs={12} sm={12}>
+                            <Grid item xs={12}>
+                                <Stack
+                                    alignItems={"center"}
+                                    direction={"row"}
+                                    height={"100%"}
+                                >
+                                    <p>Pro error:</p>
+                                    <Button fullWidth variant="outlined" onClick={() => setProErrorDialog(true)}>Proerror</Button>
+                                </Stack>
+                            </Grid>
+                            {/* <Grid item xs={7}>
+                                <Stack alignItems={"center"} direction={"row"}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Pro error"
+                                        value={pro}
+                                        onChange={(v) =>
+                                            setPro(parseFloat(v.target.value))
+                                        }
+                                        inputProps={{
+                                            step: 1,
+                                            min: 0,
+                                            type: "number",
+                                            "aria-labelledby": "input-slider",
+                                        }}
+                                    />
+                                    <Stack>
+                                        <IconButton onClick={() => setPro(pro + 1)}>
+                                            <Add />
+                                        </IconButton>
+                                        <IconButton
+                                            onClick={() =>
+                                                setPro(pro - (pro > 0 ? 1 : 0))
+                                            }
+                                        >
+                                            <Remove />
+                                        </IconButton>
+                                    </Stack>
+                                </Stack>
+                            </Grid> */}
                         </Grid>
                     </Grid>
                     <TableContainer component={Paper}>
@@ -699,11 +702,20 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 <TimerPage onAssign={onTimerAssign} />
             </Dialog>
 
-            <Dialog open={dqDialog} onClose={() => setDqDialog(false)} fullWidth maxWidth="md">
-                <DQDialog onClose={() => {
+            <Dialog open={dqDialog || proErrorDialog} onClose={() => {
+                setDqDialog(false)
+                setProErrorDialog(false);
+            }} fullWidth maxWidth="md">
+                {dqDialog ? <DQDialog onClose={() => {
                     setDqDialog(false)
-                    router.back()
-                }} scoreId={score.data.getScore.id} />
+                }} scoreId={score.data.getScore.id} /> : <></>}
+                {proErrorDialog ? <ProErrorDialog
+                    onClose={() => {
+                        setProErrorDialog(false)
+                    }}
+                    value={pro}
+                    onChange={setPro}
+                /> : <></>}
             </Dialog>
         </>
     );

@@ -2,6 +2,7 @@
 import { Query } from "@/gql_dto";
 import { gql, useMutation, useQuery } from "@apollo/client"
 import { Button, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material"
+import { useRouter } from "next/navigation";
 import React from "react";
 
 
@@ -42,6 +43,7 @@ export default function DQDialog(props: DQDialogProps) {
 
     const [selectedCategory, setSelectedCategory] = React.useState(1);
     const [selectedReason, setSelectedReason] = React.useState(1);
+    const router = useRouter();
 
     function handleSubmit() {
         set_dq({
@@ -55,6 +57,7 @@ export default function DQDialog(props: DQDialogProps) {
             },
             onCompleted(data, clientOptions) {
                 alert("DQed")
+                router.back()
                 if (!props.onClose)
                     return
                 props.onClose();
