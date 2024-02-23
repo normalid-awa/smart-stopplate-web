@@ -60,34 +60,6 @@ const GET_SCORE_QUERY = gql`
         }
     }
 `;
-
-const ASSIGN_SCORE_MUTATION = gql`
-    mutation UpdateScore(
-        $id: Int!
-        $alphaZone: Int!
-        $charlieZone: Int!
-        $deltaZone: Int!
-        $noShoots: Int!
-        $miss: Int!
-        $poppers: Int!
-        $proError: Int!
-        $time: Float!
-    ) {
-        updateScore(
-            id: $id
-            alphaZone: $alphaZone
-            charlieZone: $charlieZone
-            deltaZone: $deltaZone
-            noShoots: $noShoots
-            miss: $miss
-            poppers: $poppers
-            proError: $proError
-            time: $time
-        ) {
-            id
-        }
-    }
-`;
 const UPDATE_SCORE_MUTATION = gql`
     mutation UpdateScore(
         $id: Int!
@@ -101,7 +73,7 @@ const UPDATE_SCORE_MUTATION = gql`
         $time: Float!
     ) {
         updateScore(
-            id: $id
+            id: $id,
             alphaZone: $alphaZone
             charlieZone: $charlieZone
             deltaZone: $deltaZone
@@ -168,7 +140,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         },
     });
     const [papperData, setPapperData] = React.useState<PaperTargetData[]>([]);
-    const [assign_score, assign_score_] = useMutation(ASSIGN_SCORE_MUTATION);
     const [update_score, update_score_] = useMutation(UPDATE_SCORE_MUTATION);
     const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF);
 
@@ -194,7 +165,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
         if (!confirm("Are you sure you are finished marking?")) return;
 
-        assign_score({
+        update_score({
             variables: {
                 id: id,
                 alphaZone: total_a,
@@ -203,7 +174,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro,
+                proError: pro.length,
                 time: time,
             },
             onCompleted(data, clientOptions) {
@@ -234,7 +205,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro,
+                proError: pro.length,
                 time: time,
             },
             onCompleted(data, clientOptions) {
@@ -365,7 +336,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             });
             pappers[0].ns = ns;
             setPopper(pp);
-            setPro(pe);
+            //TODO: setPro(pe);
             setTime(time);
         }
         setPapperData(pappers);
@@ -482,7 +453,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     height={"100%"}
                                 >
                                     <p>Pro error:</p>
-                                    <Button fullWidth variant="outlined" onClick={() => setProErrorDialog(true)}>Proerror</Button>
+                                    <Button fullWidth variant="outlined" onClick={() => {
+                                        setProErrorDialog(true)
+                                        console.log(pro)
+                                    }}>Pro Errors</Button>
                                 </Stack>
                             </Grid>
                             {/* <Grid item xs={7}>
