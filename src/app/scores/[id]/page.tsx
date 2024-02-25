@@ -1,7 +1,7 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { Query, ScoreState } from "@/gql_dto";
+import { ProErrorListItem, Query, ScoreState } from "@/gql_dto";
 import {
     Button,
     ButtonGroup,
@@ -32,7 +32,8 @@ import { useLongPress } from "@uidotdev/usehooks";
 import { useRouter } from "next/navigation";
 import TimerPage from "@/app/timer/page";
 import DQDialog from "./setDqDialog";
-import ProErrorDialog, { ProErrorRecord } from "./proErrorDialog";
+import ProErrorDialog from "./proErrorDialog";
+
 
 const GET_SCORE_QUERY = gql`
     query GetScore($id: Int!) {
@@ -57,6 +58,11 @@ const GET_SCORE_QUERY = gql`
                     popperTargets
                 }
             }
+            proErrorRecord {
+                id
+                count
+                proErrorItemId
+            }
         }
     }
 `;
@@ -71,6 +77,7 @@ const UPDATE_SCORE_MUTATION = gql`
         $poppers: Int!
         $proError: Int!
         $time: Float!
+        $proList: [ProErrorListItem]!
     ) {
         updateScore(
             id: $id,
@@ -82,6 +89,7 @@ const UPDATE_SCORE_MUTATION = gql`
             poppers: $poppers
             proError: $proError
             time: $time
+            proList: $proList
         ) {
             id
         }
@@ -144,7 +152,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
     const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF);
 
     const [time, setTime] = React.useState(0);
-    const [pro, setPro] = React.useState<ProErrorRecord[]>([]);
+    const [pro, setPro] = React.useState<ProErrorListItem[]>([]);
     const [popper, setPopper] = React.useState(0);
 
     const theme = useTheme();
@@ -165,6 +173,11 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
         if (!confirm("Are you sure you are finished marking?")) return;
 
+        let pro_count = 0
+        pro.map(v => {
+            pro_count += v.count
+        })
+
         update_score({
             variables: {
                 id: id,
@@ -174,8 +187,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro.length,
+                proError: pro_count,
                 time: time,
+                proList: pro,
             },
             onCompleted(data, clientOptions) {
                 router.back();
@@ -195,7 +209,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             total_ns += v.ns;
             total_m += v.m;
         });
-
+        let pro_count = 0
+        pro.map(v => {
+            pro_count += v.count
+        })
         update_score({
             variables: {
                 id: id,
@@ -205,8 +222,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro.length,
+                proError: pro_count,
                 time: time,
+                proList: pro,
             },
             onCompleted(data, clientOptions) {
                 router.back();
@@ -336,10 +354,21 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             });
             pappers[0].ns = ns;
             setPopper(pp);
-            //TODO: setPro(pe);
+            // setPro(pe);
             setTime(time);
         }
         setPapperData(pappers);
+
+        let __pro: typeof pro = []
+        score.data.getScore.proErrorRecord?.forEach(v => {
+            if (!v)
+                return
+            __pro.push({
+                count: v?.count,
+                pro_id: v?.proErrorItemId,
+            })
+        })
+        setPro(__pro)
     }, [score]);
 
     const [dqDialog, setDqDialog] = React.useState(false);

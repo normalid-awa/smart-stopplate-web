@@ -1,5 +1,5 @@
 "use client"
-import { ProError, Query } from "@/gql_dto";
+import { ProErrorItem, ProErrorListItem , Query } from "@/gql_dto";
 import { gql, useMutation, useQuery } from "@apollo/client"
 import { Button, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, TextField, Typography } from "@mui/material"
 import React from "react";
@@ -71,7 +71,7 @@ const ProErrorAdjustPlus = styled(IconButton, {
 
 const ProErrorItem = React.forwardRef((props: {
     count: number;
-    proErrorInfo: ProError;
+    proErrorInfo: ProErrorItem;
     onChange: (delta: number) => void;
 }) => {
     const { count, proErrorInfo, onChange, ...other } = props;
@@ -87,15 +87,10 @@ const ProErrorItem = React.forwardRef((props: {
         </ProErrorRoot>
     );
 });
-export interface ProErrorRecord {
-    pro_error: number,
-    counts: number,
-}
-
 export interface ProErrorDialogProps {
     onClose?: () => void;
-    onChange: (pro_error_list: ProErrorRecord[]) => void;
-    value: ProErrorRecord[];
+    onChange: (pro_error_list: ProErrorListItem[]) => void;
+    value: ProErrorListItem[];
 }
 
 export default function ProErrorDialog(props: ProErrorDialogProps) {
@@ -104,9 +99,9 @@ export default function ProErrorDialog(props: ProErrorDialogProps) {
 
     function handle_pro_change(pro_id: number, delta: number) {
         let new_list = props.value;
-        let i = new_list.findIndex((v) => v.pro_error === pro_id);
-        if (i !== -1) new_list[i].counts += delta;
-        else new_list.push({ pro_error: pro_id, counts: delta });
+        let i = new_list.findIndex((v) => v.pro_id === pro_id);
+        if (i !== -1) new_list[i].count += delta;
+        else new_list.push({ pro_id: pro_id, count: delta });
         props.onChange([...new_list]);
     }
 
@@ -127,7 +122,7 @@ export default function ProErrorDialog(props: ProErrorDialogProps) {
                             <ProErrorItem
                                 key={v.id}
                                 proErrorInfo={v}
-                                count={props.value.find(p => p.pro_error === v.id)?.counts ?? 0}
+                                count={props.value.find(p => p.pro_id === v.id)?.count ?? 0}
                                 onChange={d => handle_pro_change(v.id, d)}
                             />
                         )
