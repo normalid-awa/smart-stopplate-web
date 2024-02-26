@@ -146,6 +146,92 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         variables: {
             id,
         },
+        onCompleted(data) {
+            let pappers: PaperTargetData[] = [];
+            for (
+                let index = 0;
+                index < data.getScore.scorelist.stage.paperTargets;
+                index++
+            ) {
+                pappers.push({
+                    id: index + 1,
+                    a: 0,
+                    c: 0,
+                    d: 0,
+                    m: 0,
+                    ns: 0,
+                });
+            }
+            if (data.getScore.scoreState == ScoreState.Scored) {
+                let a = data.getScore.alphaZone;
+                let c = data.getScore.charlieZone;
+                let d = data.getScore.deltaZone;
+                let m = data.getScore.miss;
+                let ns = data.getScore.noShoots;
+                let pp = data.getScore.poppers;
+                let pe = data.getScore.proError;
+                let time = data.getScore.time;
+                pappers.forEach((v, i) => {
+                    let added = 0;
+                    if (a > 1) {
+                        pappers[i].a = 2;
+                        a -= 2;
+                        added += 2;
+                    } else if (c > 1) {
+                        pappers[i].c = 2;
+                        c -= 2;
+                        added += 2;
+                    } else if (d > 1) {
+                        pappers[i].d = 2;
+                        d -= 2;
+                        added += 2;
+                    } else if (m > 1) {
+                        pappers[i].m = 2;
+                        m -= 2;
+                        added += 2;
+                    }
+                    if (added >= 2) return;
+                    while (added < 2) {
+                        if (a == 1) {
+                            pappers[i].a = 1;
+                            a -= 1;
+                            added++;
+                        } else if (c == 1) {
+                            pappers[i].c = 1;
+                            c -= 1;
+                            added++;
+                        } else if (d == 1) {
+                            pappers[i].d = 1;
+                            d -= 1;
+                            added++;
+                        } else if (m == 1) {
+                            pappers[i].m = 1;
+                            m -= 1;
+                            added++;
+                        }
+                    }
+                });
+                pappers[0].ns = ns;
+                setPopper(pp);
+                // setPro(pe);
+                setTime(time);
+            }
+            setPapperData(pappers);
+
+            let __pro: typeof pro = []
+            data.getScore.proErrorRecord?.forEach(v => {
+                if (!v)
+                    return
+                __pro.push({
+                    count: v?.count,
+                    pro_id: v?.proErrorItemId,
+                })
+            })
+            setPro(__pro)
+            let p = 0
+            pro.forEach(v => p += v.count)
+            setProAmount(p);
+        },
     });
     const [papperData, setPapperData] = React.useState<PaperTargetData[]>([]);
     const [update_score, update_score_] = useMutation(UPDATE_SCORE_MUTATION);
@@ -248,91 +334,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             maxWidth: 5,
         },
     ];
+
     React.useEffect(() => {
-        if (!score.data) return;
-
-        let pappers: PaperTargetData[] = [];
-        for (
-            let index = 0;
-            index < score.data.getScore.scorelist.stage.paperTargets;
-            index++
-        ) {
-            pappers.push({
-                id: index + 1,
-                a: 0,
-                c: 0,
-                d: 0,
-                m: 0,
-                ns: 0,
-            });
-        }
-        if (score.data.getScore.scoreState == ScoreState.Scored) {
-            let a = score.data.getScore.alphaZone;
-            let c = score.data.getScore.charlieZone;
-            let d = score.data.getScore.deltaZone;
-            let m = score.data.getScore.miss;
-            let ns = score.data.getScore.noShoots;
-            let pp = score.data.getScore.poppers;
-            let pe = score.data.getScore.proError;
-            let time = score.data.getScore.time;
-            pappers.forEach((v, i) => {
-                let added = 0;
-                if (a > 1) {
-                    pappers[i].a = 2;
-                    a -= 2;
-                    added += 2;
-                } else if (c > 1) {
-                    pappers[i].c = 2;
-                    c -= 2;
-                    added += 2;
-                } else if (d > 1) {
-                    pappers[i].d = 2;
-                    d -= 2;
-                    added += 2;
-                } else if (m > 1) {
-                    pappers[i].m = 2;
-                    m -= 2;
-                    added += 2;
-                }
-                if (added >= 2) return;
-                while (added < 2) {
-                    if (a == 1) {
-                        pappers[i].a = 1;
-                        a -= 1;
-                        added++;
-                    } else if (c == 1) {
-                        pappers[i].c = 1;
-                        c -= 1;
-                        added++;
-                    } else if (d == 1) {
-                        pappers[i].d = 1;
-                        d -= 1;
-                        added++;
-                    } else if (m == 1) {
-                        pappers[i].m = 1;
-                        m -= 1;
-                        added++;
-                    }
-                }
-            });
-            pappers[0].ns = ns;
-            setPopper(pp);
-            // setPro(pe);
-            setTime(time);
-        }
-        setPapperData(pappers);
-
-        let __pro: typeof pro = []
-        score.data.getScore.proErrorRecord?.forEach(v => {
-            if (!v)
-                return
-            __pro.push({
-                count: v?.count,
-                pro_id: v?.proErrorItemId,
-            })
-        })
-        setPro(__pro)
-    }, [score]);
+        score.refetch();
+    }, [])
 
     React.useEffect(() => {
         let p = 0
