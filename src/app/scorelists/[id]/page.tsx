@@ -239,7 +239,6 @@ function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
     filteredSortedRowIds.map((id) => {
         let row: any[] = [];
         visibleColumnsField.forEach((field, i) => {
-            console.log(apiRef.current.getCellParams(id, field));
             if (apiRef.current.getCellParams(id, field).field == "actions")
                 return;
             row.push(apiRef.current.getCellParams(id, field).value ?? "");
