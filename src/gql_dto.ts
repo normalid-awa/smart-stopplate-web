@@ -48,9 +48,25 @@ export enum Division {
     Standard = "STANDARD",
 }
 
+/** Dq reason */
+export type Dq = {
+    __typename?: "Dq";
+    category: Scalars["String"]["output"];
+    category_zh: Scalars["String"]["output"];
+    content: Scalars["String"]["output"];
+    content_zh: Scalars["String"]["output"];
+    id: Scalars["Int"]["output"];
+    /**
+     *
+     *                 The index that locate in the rulebook
+     *
+     */
+    index: Scalars["String"]["output"];
+};
+
 export type Mutation = {
     __typename?: "Mutation";
-    assignScore: Score;
+    addNewRound: Scorelist;
     createScore: Score;
     createScoreboard: Scoreboard;
     createScorelist: Scorelist;
@@ -74,19 +90,12 @@ export type Mutation = {
     updateStage: Stage;
 };
 
-export type MutationAssignScoreArgs = {
-    alphaZone: Scalars["Int"]["input"];
-    charlieZone: Scalars["Int"]["input"];
-    deltaZone: Scalars["Int"]["input"];
+export type MutationAddNewRoundArgs = {
     id: Scalars["Int"]["input"];
-    miss: Scalars["Int"]["input"];
-    noShoots: Scalars["Int"]["input"];
-    poppers: Scalars["Int"]["input"];
-    proError: Scalars["Int"]["input"];
-    time: Scalars["Float"]["input"];
 };
 
 export type MutationCreateScoreArgs = {
+    round: Scalars["Int"]["input"];
     scorelistId: Scalars["Int"]["input"];
     shooterId: Scalars["Int"]["input"];
 };
@@ -155,6 +164,7 @@ export type MutationSetScoreDnfArgs = {
 };
 
 export type MutationSetScoreDqArgs = {
+    dq_reason: Scalars["Int"]["input"];
     id: Scalars["Int"]["input"];
 };
 
@@ -172,6 +182,7 @@ export type MutationUpdateScoreArgs = {
     noShoots: Scalars["Int"]["input"];
     poppers: Scalars["Int"]["input"];
     proError: Scalars["Int"]["input"];
+    proList: Array<InputMaybe<ProErrorListItem>>;
     time: Scalars["Float"]["input"];
 };
 
@@ -196,8 +207,41 @@ export type MutationUpdateStageArgs = {
     popperTargets: Scalars["Int"]["input"];
 };
 
+export type ProErrorItem = {
+    __typename?: "ProErrorItem";
+    big_title: Scalars["String"]["output"];
+    big_title_zh: Scalars["String"]["output"];
+    content: Scalars["String"]["output"];
+    content_zh: Scalars["String"]["output"];
+    id: Scalars["Int"]["output"];
+    /**
+     * @deprecated
+     *                 The index locate in the rulebook
+     *
+     */
+    index: Scalars["String"]["output"];
+    single_punishment: Scalars["Boolean"]["output"];
+};
+
+export type ProErrorListItem = {
+    count: Scalars["Int"]["input"];
+    pro_id: Scalars["Int"]["input"];
+};
+
+export type ProErrorRecord = {
+    __typename?: "ProErrorRecord";
+    count: Scalars["Int"]["output"];
+    id: Scalars["Int"]["output"];
+    proErrorItem: ProErrorItem;
+    proErrorItemId: Scalars["Int"]["output"];
+    score: Score;
+    scoreId: Scalars["Int"]["output"];
+};
+
 export type Query = {
     __typename?: "Query";
+    getAllDqReason: Array<Dq>;
+    getAllProError: Array<ProErrorItem>;
     getAllScoreboards: Array<Scoreboard>;
     getAllScorelists: Array<Scorelist>;
     getAllScores: Array<Score>;
@@ -251,6 +295,7 @@ export type Score = {
     noShoots: Scalars["Int"]["output"];
     poppers: Scalars["Int"]["output"];
     proError: Scalars["Int"]["output"];
+    proErrorRecord?: Maybe<Array<Maybe<ProErrorRecord>>>;
     round: Scalars["Int"]["output"];
     scoreState: ScoreState;
     scorelist: Scorelist;
@@ -440,9 +485,13 @@ export type ResolversTypes = {
     Boolean: ResolverTypeWrapper<Scalars["Boolean"]["output"]>;
     DateTime: ResolverTypeWrapper<Scalars["DateTime"]["output"]>;
     Division: Division;
+    Dq: ResolverTypeWrapper<Dq>;
     Float: ResolverTypeWrapper<Scalars["Float"]["output"]>;
     Int: ResolverTypeWrapper<Scalars["Int"]["output"]>;
     Mutation: ResolverTypeWrapper<{}>;
+    ProErrorItem: ResolverTypeWrapper<ProErrorItem>;
+    ProErrorListItem: ProErrorListItem;
+    ProErrorRecord: ResolverTypeWrapper<ProErrorRecord>;
     Query: ResolverTypeWrapper<{}>;
     Score: ResolverTypeWrapper<Score>;
     ScoreState: ScoreState;
@@ -459,9 +508,13 @@ export type ResolversTypes = {
 export type ResolversParentTypes = {
     Boolean: Scalars["Boolean"]["output"];
     DateTime: Scalars["DateTime"]["output"];
+    Dq: Dq;
     Float: Scalars["Float"]["output"];
     Int: Scalars["Int"]["output"];
     Mutation: {};
+    ProErrorItem: ProErrorItem;
+    ProErrorListItem: ProErrorListItem;
+    ProErrorRecord: ProErrorRecord;
     Query: {};
     Score: Score;
     Scoreboard: Scoreboard;
@@ -477,32 +530,37 @@ export interface DateTimeScalarConfig
     name: "DateTime";
 }
 
+export type DqResolvers<
+    ContextType = any,
+    ParentType extends ResolversParentTypes["Dq"] = ResolversParentTypes["Dq"]
+> = {
+    category?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    category_zh?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    content?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    content_zh?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    id?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    index?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type MutationResolvers<
     ContextType = any,
     ParentType extends ResolversParentTypes["Mutation"] = ResolversParentTypes["Mutation"]
 > = {
-    assignScore?: Resolver<
-        ResolversTypes["Score"],
+    addNewRound?: Resolver<
+        ResolversTypes["Scorelist"],
         ParentType,
         ContextType,
-        RequireFields<
-            MutationAssignScoreArgs,
-            | "alphaZone"
-            | "charlieZone"
-            | "deltaZone"
-            | "id"
-            | "miss"
-            | "noShoots"
-            | "poppers"
-            | "proError"
-            | "time"
-        >
+        RequireFields<MutationAddNewRoundArgs, "id">
     >;
     createScore?: Resolver<
         ResolversTypes["Score"],
         ParentType,
         ContextType,
-        RequireFields<MutationCreateScoreArgs, "scorelistId" | "shooterId">
+        RequireFields<
+            MutationCreateScoreArgs,
+            "round" | "scorelistId" | "shooterId"
+        >
     >;
     createScoreboard?: Resolver<
         ResolversTypes["Scoreboard"],
@@ -600,7 +658,7 @@ export type MutationResolvers<
         ResolversTypes["Score"],
         ParentType,
         ContextType,
-        RequireFields<MutationSetScoreDqArgs, "id">
+        RequireFields<MutationSetScoreDqArgs, "dq_reason" | "id">
     >;
     swapScoreId?: Resolver<
         Maybe<ResolversTypes["Boolean"]>,
@@ -622,6 +680,7 @@ export type MutationResolvers<
             | "noShoots"
             | "poppers"
             | "proError"
+            | "proList"
             | "time"
         >
     >;
@@ -654,10 +713,55 @@ export type MutationResolvers<
     >;
 };
 
+export type ProErrorItemResolvers<
+    ContextType = any,
+    ParentType extends ResolversParentTypes["ProErrorItem"] = ResolversParentTypes["ProErrorItem"]
+> = {
+    big_title?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    big_title_zh?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    content?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    content_zh?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    id?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    index?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+    single_punishment?: Resolver<
+        ResolversTypes["Boolean"],
+        ParentType,
+        ContextType
+    >;
+    __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProErrorRecordResolvers<
+    ContextType = any,
+    ParentType extends ResolversParentTypes["ProErrorRecord"] = ResolversParentTypes["ProErrorRecord"]
+> = {
+    count?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    id?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    proErrorItem?: Resolver<
+        ResolversTypes["ProErrorItem"],
+        ParentType,
+        ContextType
+    >;
+    proErrorItemId?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    score?: Resolver<ResolversTypes["Score"], ParentType, ContextType>;
+    scoreId?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type QueryResolvers<
     ContextType = any,
     ParentType extends ResolversParentTypes["Query"] = ResolversParentTypes["Query"]
 > = {
+    getAllDqReason?: Resolver<
+        Array<ResolversTypes["Dq"]>,
+        ParentType,
+        ContextType
+    >;
+    getAllProError?: Resolver<
+        Array<ResolversTypes["ProErrorItem"]>,
+        ParentType,
+        ContextType
+    >;
     getAllScoreboards?: Resolver<
         Array<ResolversTypes["Scoreboard"]>,
         ParentType,
@@ -735,6 +839,11 @@ export type ScoreResolvers<
     noShoots?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
     poppers?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
     proError?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+    proErrorRecord?: Resolver<
+        Maybe<Array<Maybe<ResolversTypes["ProErrorRecord"]>>>,
+        ParentType,
+        ContextType
+    >;
     round?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
     scoreState?: Resolver<
         ResolversTypes["ScoreState"],
@@ -850,7 +959,10 @@ export type SubscriptionResolvers<
 
 export type Resolvers<ContextType = any> = {
     DateTime?: GraphQLScalarType;
+    Dq?: DqResolvers<ContextType>;
     Mutation?: MutationResolvers<ContextType>;
+    ProErrorItem?: ProErrorItemResolvers<ContextType>;
+    ProErrorRecord?: ProErrorRecordResolvers<ContextType>;
     Query?: QueryResolvers<ContextType>;
     Score?: ScoreResolvers<ContextType>;
     Scoreboard?: ScoreboardResolvers<ContextType>;

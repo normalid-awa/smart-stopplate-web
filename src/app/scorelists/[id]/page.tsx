@@ -239,7 +239,6 @@ function JsonExportMenuItem(props: GridExportMenuItemProps<{}>) {
     filteredSortedRowIds.map((id) => {
         let row: any[] = [];
         visibleColumnsField.forEach((field, i) => {
-            console.log(apiRef.current.getCellParams(id, field));
             if (apiRef.current.getCellParams(id, field).field == "actions")
                 return;
             row.push(apiRef.current.getCellParams(id, field).value ?? "");
@@ -568,7 +567,7 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
         setAddShooterOpen(false);
     }
 
-    const [round, setRound] = React.useState(1);
+    const [round, setRound] = React.useState(0);
 
     if (scorelist.loading) return <pre>Loading...</pre>;
     if (scorelist.error)
@@ -585,7 +584,6 @@ export default function ScorelistPage({ params }: { params: { id: string } }) {
                     <Tabs
                         value={round}
                         onChange={(_, v) => setRound(v)}
-                        aria-label="basic tabs example"
                     >
                         {((
                             () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { gql, useMutation, useQuery } from "@apollo/client";
-import { Query, ScoreState } from "@/gql_dto";
+import { ProErrorListItem, Query, ScoreState } from "@/gql_dto";
 import {
     Button,
     ButtonGroup,
@@ -31,6 +31,9 @@ import React from "react";
 import { useLongPress } from "@uidotdev/usehooks";
 import { useRouter } from "next/navigation";
 import TimerPage from "@/app/timer/page";
+import DQDialog from "./setDqDialog";
+import ProErrorDialog from "./proErrorDialog";
+
 
 const GET_SCORE_QUERY = gql`
     query GetScore($id: Int!) {
@@ -55,34 +58,11 @@ const GET_SCORE_QUERY = gql`
                     popperTargets
                 }
             }
-        }
-    }
-`;
-
-const ASSIGN_SCORE_MUTATION = gql`
-    mutation AssignScore(
-        $id: Int!
-        $alphaZone: Int!
-        $charlieZone: Int!
-        $deltaZone: Int!
-        $noShoots: Int!
-        $miss: Int!
-        $poppers: Int!
-        $proError: Int!
-        $time: Float!
-    ) {
-        assignScore(
-            id: $id
-            alphaZone: $alphaZone
-            charlieZone: $charlieZone
-            deltaZone: $deltaZone
-            noShoots: $noShoots
-            miss: $miss
-            poppers: $poppers
-            proError: $proError
-            time: $time
-        ) {
-            id
+            proErrorRecord {
+                id
+                count
+                proErrorItemId
+            }
         }
     }
 `;
@@ -97,9 +77,10 @@ const UPDATE_SCORE_MUTATION = gql`
         $poppers: Int!
         $proError: Int!
         $time: Float!
+        $proList: [ProErrorListItem]!
     ) {
         updateScore(
-            id: $id
+            id: $id,
             alphaZone: $alphaZone
             charlieZone: $charlieZone
             deltaZone: $deltaZone
@@ -108,6 +89,7 @@ const UPDATE_SCORE_MUTATION = gql`
             poppers: $poppers
             proError: $proError
             time: $time
+            proList: $proList
         ) {
             id
         }
@@ -164,15 +146,100 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         variables: {
             id,
         },
+        onCompleted(data) {
+            let pappers: PaperTargetData[] = [];
+            for (
+                let index = 0;
+                index < data.getScore.scorelist.stage.paperTargets;
+                index++
+            ) {
+                pappers.push({
+                    id: index + 1,
+                    a: 0,
+                    c: 0,
+                    d: 0,
+                    m: 0,
+                    ns: 0,
+                });
+            }
+            if (data.getScore.scoreState == ScoreState.Scored) {
+                let a = data.getScore.alphaZone;
+                let c = data.getScore.charlieZone;
+                let d = data.getScore.deltaZone;
+                let m = data.getScore.miss;
+                let ns = data.getScore.noShoots;
+                let pp = data.getScore.poppers;
+                let pe = data.getScore.proError;
+                let time = data.getScore.time;
+                pappers.forEach((v, i) => {
+                    let added = 0;
+                    if (a > 1) {
+                        pappers[i].a = 2;
+                        a -= 2;
+                        added += 2;
+                    } else if (c > 1) {
+                        pappers[i].c = 2;
+                        c -= 2;
+                        added += 2;
+                    } else if (d > 1) {
+                        pappers[i].d = 2;
+                        d -= 2;
+                        added += 2;
+                    } else if (m > 1) {
+                        pappers[i].m = 2;
+                        m -= 2;
+                        added += 2;
+                    }
+                    if (added >= 2) return;
+                    while (added < 2) {
+                        if (a == 1) {
+                            pappers[i].a = 1;
+                            a -= 1;
+                            added++;
+                        } else if (c == 1) {
+                            pappers[i].c = 1;
+                            c -= 1;
+                            added++;
+                        } else if (d == 1) {
+                            pappers[i].d = 1;
+                            d -= 1;
+                            added++;
+                        } else if (m == 1) {
+                            pappers[i].m = 1;
+                            m -= 1;
+                            added++;
+                        }
+                    }
+                });
+                pappers[0].ns = ns;
+                setPopper(pp);
+                // setPro(pe);
+                setTime(time);
+            }
+            setPapperData(pappers);
+
+            let __pro: typeof pro = []
+            data.getScore.proErrorRecord?.forEach(v => {
+                if (!v)
+                    return
+                __pro.push({
+                    count: v?.count,
+                    pro_id: v?.proErrorItemId,
+                })
+            })
+            setPro(__pro)
+            let p = 0
+            pro.forEach(v => p += v.count)
+            setProAmount(p);
+        },
     });
     const [papperData, setPapperData] = React.useState<PaperTargetData[]>([]);
-    const [assign_score, assign_score_] = useMutation(ASSIGN_SCORE_MUTATION);
     const [update_score, update_score_] = useMutation(UPDATE_SCORE_MUTATION);
-    const [set_dq, set_dq_] = useMutation(SET_SCORE_DQ);
     const [set_dnf, set_dnf_] = useMutation(SET_SCORE_DNF);
 
     const [time, setTime] = React.useState(0);
-    const [pro, setPro] = React.useState(0);
+    const [pro, setPro] = React.useState<ProErrorListItem[]>([]);
+    const [proAmount, setProAmount] = React.useState<number>(0);
     const [popper, setPopper] = React.useState(0);
 
     const theme = useTheme();
@@ -193,36 +260,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
         if (!confirm("Are you sure you are finished marking?")) return;
 
-        assign_score({
-            variables: {
-                id: id,
-                alphaZone: total_a,
-                charlieZone: total_c,
-                deltaZone: total_d,
-                noShoots: total_ns,
-                miss: total_m,
-                poppers: popper,
-                proError: pro,
-                time: time,
-            },
-            onCompleted(data, clientOptions) {
-                router.back();
-            },
-        });
-    }
-    function perform_update_score() {
-        var total_a: number = 0;
-        var total_c: number = 0;
-        var total_d: number = 0;
-        var total_ns: number = 0;
-        var total_m: number = 0;
-        papperData.map((v) => {
-            total_a += v.a;
-            total_c += v.c;
-            total_d += v.d;
-            total_ns += v.ns;
-            total_m += v.m;
-        });
+        console.log(pro, proAmount)
 
         update_score({
             variables: {
@@ -233,8 +271,9 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro,
+                proError: proAmount,
                 time: time,
+                proList: pro,
             },
             onCompleted(data, clientOptions) {
                 router.back();
@@ -295,84 +334,24 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             maxWidth: 5,
         },
     ];
-    React.useEffect(() => {
-        if (!score.data) return;
 
-        let pappers: PaperTargetData[] = [];
-        for (
-            let index = 0;
-            index < score.data.getScore.scorelist.stage.paperTargets;
-            index++
-        ) {
-            pappers.push({
-                id: index + 1,
-                a: 0,
-                c: 0,
-                d: 0,
-                m: 0,
-                ns: 0,
-            });
-        }
-        if (score.data.getScore.scoreState == ScoreState.Scored) {
-            let a = score.data.getScore.alphaZone;
-            let c = score.data.getScore.charlieZone;
-            let d = score.data.getScore.deltaZone;
-            let m = score.data.getScore.miss;
-            let ns = score.data.getScore.noShoots;
-            let pp = score.data.getScore.poppers;
-            let pe = score.data.getScore.proError;
-            let time = score.data.getScore.time;
-            pappers.forEach((v, i) => {
-                let added = 0;
-                if (a > 1) {
-                    pappers[i].a = 2;
-                    a -= 2;
-                    added += 2;
-                } else if (c > 1) {
-                    pappers[i].c = 2;
-                    c -= 2;
-                    added += 2;
-                } else if (d > 1) {
-                    pappers[i].d = 2;
-                    d -= 2;
-                    added += 2;
-                } else if (m > 1) {
-                    pappers[i].m = 2;
-                    m -= 2;
-                    added += 2;
-                }
-                if (added >= 2) return;
-                while (added < 2) {
-                    if (a == 1) {
-                        pappers[i].a = 1;
-                        a -= 1;
-                        added++;
-                    } else if (c == 1) {
-                        pappers[i].c = 1;
-                        c -= 1;
-                        added++;
-                    } else if (d == 1) {
-                        pappers[i].d = 1;
-                        d -= 1;
-                        added++;
-                    } else if (m == 1) {
-                        pappers[i].m = 1;
-                        m -= 1;
-                        added++;
-                    }
-                }
-            });
-            pappers[0].ns = ns;
-            setPopper(pp);
-            setPro(pe);
-            setTime(time);
-        }
-        setPapperData(pappers);
-    }, [score]);
+    React.useEffect(() => {
+        score.refetch();
+    }, [])
+
+    React.useEffect(() => {
+        let p = 0
+        pro.forEach(v => p += v.count)
+        setProAmount(p);
+    }, [pro])
+
+    const [dqDialog, setDqDialog] = React.useState(false);
+    const [proErrorDialog, setProErrorDialog] = React.useState(false);
 
     if (score.loading) return <pre>Loading...</pre>;
     if (score.error) return <pre>{JSON.stringify(score.error)}</pre>;
     if (!score.data) return <pre>No data</pre>;
+
     // #endregion
     return (
         <>
@@ -408,48 +387,6 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         }}
                                     />
                                     <IconButton children={<AvTimer />} onClick={openTimer} />
-                                </Stack>
-                            </Grid>
-                        </Grid>
-                        <Grid item container xs={12} sm={6}>
-                            <Grid item xs={5}>
-                                <Stack
-                                    alignItems={"center"}
-                                    direction={"row"}
-                                    height={"100%"}
-                                >
-                                    <p>Pro error:</p>
-                                </Stack>
-                            </Grid>
-                            <Grid item xs={7}>
-                                <Stack alignItems={"center"} direction={"row"}>
-                                    <TextField
-                                        fullWidth
-                                        type="number"
-                                        label="Pro error"
-                                        value={pro}
-                                        onChange={(v) =>
-                                            setPro(parseFloat(v.target.value))
-                                        }
-                                        inputProps={{
-                                            step: 1,
-                                            min: 0,
-                                            type: "number",
-                                            "aria-labelledby": "input-slider",
-                                        }}
-                                    />
-                                    <Stack>
-                                        <IconButton onClick={() => setPro(pro + 1)}>
-                                            <Add />
-                                        </IconButton>
-                                        <IconButton
-                                            onClick={() =>
-                                                setPro(pro - (pro > 0 ? 1 : 0))
-                                            }
-                                        >
-                                            <Remove />
-                                        </IconButton>
-                                    </Stack>
                                 </Stack>
                             </Grid>
                         </Grid>
@@ -510,6 +447,51 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     </Stack>
                                 </Stack>
                             </Grid>
+                        </Grid>
+                        <Grid item container xs={12} sm={12}>
+                            <Grid item xs={12}>
+                                <Stack
+                                    alignItems={"center"}
+                                    direction={"row"}
+                                    height={"100%"}
+                                >
+                                    <Button fullWidth variant="outlined" onClick={() => {
+                                        setProErrorDialog(true)
+                                        console.log(pro)
+                                    }}>Pro Errors ({proAmount})</Button>
+                                </Stack>
+                            </Grid>
+                            {/* <Grid item xs={7}>
+                                <Stack alignItems={"center"} direction={"row"}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Pro error"
+                                        value={pro}
+                                        onChange={(v) =>
+                                            setPro(parseFloat(v.target.value))
+                                        }
+                                        inputProps={{
+                                            step: 1,
+                                            min: 0,
+                                            type: "number",
+                                            "aria-labelledby": "input-slider",
+                                        }}
+                                    />
+                                    <Stack>
+                                        <IconButton onClick={() => setPro(pro + 1)}>
+                                            <Add />
+                                        </IconButton>
+                                        <IconButton
+                                            onClick={() =>
+                                                setPro(pro - (pro > 0 ? 1 : 0))
+                                            }
+                                        >
+                                            <Remove />
+                                        </IconButton>
+                                    </Stack>
+                                </Stack>
+                            </Grid> */}
                         </Grid>
                     </Grid>
                     <TableContainer component={Paper}>
@@ -632,31 +614,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     fullWidth
                                     variant="contained"
                                     color="error"
-                                    onClick={() => {
-                                        if (
-                                            !confirm(
-                                                "Are you sure you wanna dq(disqualified) this shooter?"
-                                            )
-                                        )
-                                            return;
-                                        let v = prompt(
-                                            "Let CRO/RO to type DQ to process dq(disqualified) action"
-                                        )?.toLocaleUpperCase();
-                                        if (v != "DQ") {
-                                            alert("Action cancelled");
-                                            return;
-                                        }
-                                        set_dq({
-                                            variables: { id },
-                                            onCompleted(data, clientOptions) {
-                                                alert("DQed");
-                                                router.back();
-                                            },
-                                            onError(error, clientOptions) {
-                                                alert("Fail to DQ due to server error");
-                                            },
-                                        });
-                                    }}
+                                    onClick={() => setDqDialog(true)}
                                 >
                                     DQ
                                 </Button>
@@ -696,7 +654,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         fullWidth
                                         variant="contained"
                                         color="success"
-                                        onClick={perform_update_score}
+                                        onClick={submit_score}
                                     >
                                         Update
                                     </Button>
@@ -718,6 +676,22 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             </Container>
             <Dialog open={timerPrompt} onClose={() => setTimerPrompt(false)}>
                 <TimerPage onAssign={onTimerAssign} />
+            </Dialog>
+
+            <Dialog open={dqDialog || proErrorDialog} onClose={() => {
+                setDqDialog(false)
+                setProErrorDialog(false);
+            }} fullWidth maxWidth="md">
+                {dqDialog ? <DQDialog onClose={() => {
+                    setDqDialog(false)
+                }} scoreId={score.data.getScore.id} /> : <></>}
+                {proErrorDialog ? <ProErrorDialog
+                    onClose={() => {
+                        setProErrorDialog(false)
+                    }}
+                    value={pro}
+                    onChange={setPro}
+                /> : <></>}
             </Dialog>
         </>
     );
