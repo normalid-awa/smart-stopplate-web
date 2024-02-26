@@ -153,6 +153,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
 
     const [time, setTime] = React.useState(0);
     const [pro, setPro] = React.useState<ProErrorListItem[]>([]);
+    const [proAmount, setProAmount] = React.useState<number>(0);
     const [popper, setPopper] = React.useState(0);
 
     const theme = useTheme();
@@ -173,10 +174,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         });
         if (!confirm("Are you sure you are finished marking?")) return;
 
-        let pro_count = 0
-        pro.map(v => {
-            pro_count += v.count
-        })
+        console.log(pro, proAmount)
 
         update_score({
             variables: {
@@ -187,42 +185,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                 noShoots: total_ns,
                 miss: total_m,
                 poppers: popper,
-                proError: pro_count,
-                time: time,
-                proList: pro,
-            },
-            onCompleted(data, clientOptions) {
-                router.back();
-            },
-        });
-    }
-    function perform_update_score() {
-        var total_a: number = 0;
-        var total_c: number = 0;
-        var total_d: number = 0;
-        var total_ns: number = 0;
-        var total_m: number = 0;
-        papperData.map((v) => {
-            total_a += v.a;
-            total_c += v.c;
-            total_d += v.d;
-            total_ns += v.ns;
-            total_m += v.m;
-        });
-        let pro_count = 0
-        pro.map(v => {
-            pro_count += v.count
-        })
-        update_score({
-            variables: {
-                id: id,
-                alphaZone: total_a,
-                charlieZone: total_c,
-                deltaZone: total_d,
-                noShoots: total_ns,
-                miss: total_m,
-                poppers: popper,
-                proError: pro_count,
+                proError: proAmount,
                 time: time,
                 proList: pro,
             },
@@ -371,6 +334,12 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         setPro(__pro)
     }, [score]);
 
+    React.useEffect(() => {
+        let p = 0
+        pro.forEach(v => p += v.count)
+        setProAmount(p);
+    }, [pro])
+
     const [dqDialog, setDqDialog] = React.useState(false);
     const [proErrorDialog, setProErrorDialog] = React.useState(false);
 
@@ -481,11 +450,10 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     direction={"row"}
                                     height={"100%"}
                                 >
-                                    <p>Pro error:</p>
                                     <Button fullWidth variant="outlined" onClick={() => {
                                         setProErrorDialog(true)
                                         console.log(pro)
-                                    }}>Pro Errors</Button>
+                                    }}>Pro Errors ({proAmount})</Button>
                                 </Stack>
                             </Grid>
                             {/* <Grid item xs={7}>
@@ -681,7 +649,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         fullWidth
                                         variant="contained"
                                         color="success"
-                                        onClick={perform_update_score}
+                                        onClick={submit_score}
                                     >
                                         Update
                                     </Button>
