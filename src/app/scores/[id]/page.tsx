@@ -24,7 +24,7 @@ import {
     styled,
     useTheme,
 } from "@mui/material";
-import { Add, AvTimer, LockClock, Remove } from "@mui/icons-material";
+import { Add, AvTimer, CopyAll, LockClock, Remove } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import { GridColDef } from "@mui/x-data-grid";
 import React from "react";
@@ -335,8 +335,47 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         },
     ];
 
+    const updateScoreCode = () => {
+        let code = "";
+        var total_a: number = 0;
+        var total_c: number = 0;
+        var total_d: number = 0;
+        var total_ns: number = 0;
+        var total_m: number = 0;
+        papperData.map((v) => {
+            total_a += v.a;
+            total_c += v.c;
+            total_d += v.d;
+            total_ns += v.ns;
+            total_m += v.m;
+        });
+        if (total_a > 0)
+            code += `${total_a}A `
+        if (total_c > 0)
+            code += `${total_c}C `
+        if (total_d > 0)
+            code += `${total_d}D `
+        if (total_ns > 0)
+            code += `${total_ns}NS `
+        if (total_m > 0)
+            code += `${total_m}M `
+        if (popper > 0)
+            code += `${popper}PP `
+        if (score.data?.getScore.scorelist.stage?.popperTargets ?? 0 - popper > 0)
+            code += `${score.data?.getScore.scorelist.stage?.popperTargets ?? 0 - popper}PM `
+        if (proAmount > 0)
+            code += `${proAmount}PE `
+        code += `${time.toFixed(2)}s `
+        let hit_factor =
+            (total_a * 5 + total_c * 3 + total_d - total_ns * 10 - total_m * 10 + popper * 5 - proAmount * 10) / time;
+        code += `HF${hit_factor.toFixed(3)} `
+
+        setScoreCode(code);
+    }
+
     React.useEffect(() => {
         score.refetch();
+        updateScoreCode();
     }, [])
 
     React.useEffect(() => {
@@ -344,6 +383,12 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         pro.forEach(v => p += v.count)
         setProAmount(p);
     }, [pro])
+
+    React.useEffect(() => {
+        updateScoreCode();
+    }, [popper, pro, proAmount, time, papperData]);
+
+    const [scoreCode, setScoreCode] = React.useState<string>("10A 10C 10D 10NS 10M 10PP 10PM 10PE 10.10s HF:1.320");
 
     const [dqDialog, setDqDialog] = React.useState(false);
     const [proErrorDialog, setProErrorDialog] = React.useState(false);
@@ -672,6 +717,32 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                 </Grid>}
                         </Grid>
                     }
+                </Paper>
+                <Paper elevation={10} sx={{ my: 1, p: 1 }}>
+                    <Typography p={1}>Score code:</Typography>
+                    <Paper elevation={0} sx={{ m: 1 }}>
+                        <Grid container>
+                            <Grid item xs={10} sm={11}>
+                                {/* <Typography p={2}>10A 10C 10D 10NS 10M 10PP 10PM 10PE 10.10s HF:1.320</Typography> */}
+                                <Typography p={2}>{scoreCode}</Typography>
+                            </Grid>
+                            <Grid item xs={2} sm={1} sx={{ alignSelf: "center" }}>
+                                <IconButton
+                                    aria-label="Copy"
+                                    sx={{ alignSelf: "center", alignmentBaseline: "middle" }}
+                                    onClick={async() => {
+                                        try {
+                                            await navigator.clipboard.writeText(scoreCode);
+                                        } catch (error) {
+                                            console.error(error);
+                                        }
+                                    }}
+                                >
+                                    <CopyAll />
+                                </IconButton>
+                            </Grid>
+                        </Grid>
+                    </Paper>
                 </Paper>
             </Container>
             <Dialog open={timerPrompt} onClose={() => setTimerPrompt(false)}>
