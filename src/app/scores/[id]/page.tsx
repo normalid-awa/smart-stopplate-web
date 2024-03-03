@@ -368,7 +368,7 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
         code += `${time.toFixed(2)}s `
         let hit_factor =
             (total_a * 5 + total_c * 3 + total_d - total_ns * 10 - total_m * 10 + popper * 5 - proAmount * 10) / time;
-        code += `HF${hit_factor.toFixed(3)} `
+        code += `HF:${hit_factor.toFixed(3)} `
 
         setScoreCode(code);
     }
@@ -732,7 +732,17 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                     sx={{ alignSelf: "center", alignmentBaseline: "middle" }}
                                     onClick={async () => {
                                         try {
-                                            await navigator.clipboard.writeText(scoreCode);
+                                            let code = scoreCode
+                                            code += `
+NS      -> No-shoots
+M       -> Miss
+PP      -> Popper
+PM      -> Popper misses
+PE      -> Procedural Errors
+?.??s   -> Time
+HF      -> Hit factor
+                                            `
+                                            await navigator.clipboard.writeText(code);
                                         } catch (error) {
                                             console.error(error);
                                         }
