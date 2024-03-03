@@ -361,8 +361,8 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
             code += `${total_m}M `
         if (popper > 0)
             code += `${popper}PP `
-        if (score.data?.getScore.scorelist.stage?.popperTargets ?? 0 - popper > 0)
-            code += `${score.data?.getScore.scorelist.stage?.popperTargets ?? 0 - popper}PM `
+        if ((score.data?.getScore.scorelist.stage?.popperTargets ?? 0) - popper > 0)
+            code += `${(score.data?.getScore.scorelist.stage?.popperTargets ?? 0) - popper}PM `
         if (proAmount > 0)
             code += `${proAmount}PE `
         code += `${time.toFixed(2)}s `
