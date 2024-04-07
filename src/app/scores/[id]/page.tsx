@@ -734,13 +734,13 @@ export default function ScoringPage({ params }: { params: { id: string } }) {
                                         try {
                                             let code = scoreCode
                                             code += `
-NS      : No-shoots
-M       : Miss
-PP      : Popper
-PM      : Popper misses
-PE      : Procedural Errors
-?.??s   : Time
-HF      : Hit factor
+NS: No-shoots
+M: Miss
+PP: Popper
+PM: Popper misses
+PE: Procedural Errors
+?.??s: Time
+HF: Hit factor
                                             `
                                             await navigator.clipboard.writeText(code);
                                         } catch (error) {
