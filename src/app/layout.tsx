@@ -83,7 +83,7 @@ const themeOptions: ThemeOptions = createTheme({
 
 /* #region create Websocket link for subscription */
 const httpLink = new HttpLink({
-	uri: process.env.NEXT_PUBLIC_backendUrl,
+	uri: location.origin + "/api/graphql",
 });
 
 // const sseLink = new ServerSentEventsLink({
@@ -91,7 +91,7 @@ const httpLink = new HttpLink({
 // });
 const wsLink = new GraphQLWsLink(
 	createClient({
-		url: process.env.NEXT_PUBLIC_wsBackendUrl as string,
+		url: "wss://"+ location.host +"/api/graphql",
 	})
 );
 const splitLink = split(
