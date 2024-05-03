@@ -13,13 +13,7 @@ const nextConfig = {
 		];
 	},
 	skipTrailingSlashRedirect: true,
-	redirects: [
-		{
-			source: "/api",
-			destination: process.env.NEXT_PUBLIC_backendUrl + "",
-			permanent: true,
-		},
-	],
+	skipMiddlewareUrlNormalize: true,
 };
 
 module.exports = nextConfig
