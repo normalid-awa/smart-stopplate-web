@@ -10,7 +10,7 @@ const nextConfig = {
 				destination: process.env.NEXT_PUBLIC_backendUrl + ":path",
 			},
 		];
-	},
+    },
 	skipTrailingSlashRedirect: true,
 };
 
